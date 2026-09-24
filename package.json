@@ -1,0 +1,30 @@
+{
+  "name": "chess-coach",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "build:puzzles": "tsx scripts/build-starter-puzzles.ts",
+    "test": "tsx tests/board.test.ts && tsx tests/pgn.test.ts && tsx tests/motifs.test.ts && tsx tests/openings.test.ts && tsx tests/coach.test.ts && tsx tests/verify-starter.ts && RUN_ENGINE_TEST=1 tsx tests/engine-node.ts && tsx tests/lesson-positions.test.ts && tsx tests/e2e.test.ts",
+    "test:fast": "tsx tests/board.test.ts && tsx tests/pgn.test.ts && tsx tests/motifs.test.ts && tsx tests/openings.test.ts && tsx tests/coach.test.ts && tsx tests/verify-starter.ts"
+  },
+  "dependencies": {
+    "chess.js": "^1.4.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "stockfish": "^19.0.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0"
+  }
+}
