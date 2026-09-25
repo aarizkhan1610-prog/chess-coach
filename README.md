@@ -43,10 +43,20 @@ panel gives way to the openings you actually play.
 
 ## What it does
 
-**Import and analyse.** Paste or drop a PGN from Lichess, Chess.com or a real
-board. Every position in the game is evaluated, each move gets a verdict
-(blunder / mistake / inaccuracy / good / best / great / brilliant / book) and a
-win-probability cost, and the game gets an accuracy score per side and per phase.
+**Import and analyse.** Type your Lichess or Chess.com username and it pulls
+your last 5, 10 or 20 games straight from the public API — or paste a PGN from
+anywhere, including a real board. Every position in the game is evaluated, each
+move gets a verdict (blunder / mistake / inaccuracy / good / best / great /
+brilliant / book) and a win-probability cost, and the game gets an accuracy
+score per side and per phase.
+
+Fetching by username is the only time the app talks to anything external, and
+the only thing that leaves the machine is the username, in the URL. Games
+travel inwards; the analysis stays here. Both services expose read-only public
+endpoints that permit browser requests, so this still needs no server of its
+own. Lichess rate-limits to one request at a time, and Chess.com's bot
+protection occasionally rejects browser calls — both are reported with a
+readable explanation, and pasting a PGN always works as a fallback.
 
 **Find the pattern.** For every mistake the app works out *why* it was a mistake
 — not just "you lost 30%", but "you left a piece undefended", "you walked into a

@@ -672,3 +672,11 @@ tr.clickable:hover td { background: var(--surface-2); }
   .app.nav-collapsed .main { padding-left: 16px; }
   .nav-toggle, .nav-restore { display: none; }
 }
+
+/* ---------------------------------------------------------------- *
+ * Fetch-from-profile row
+ * ---------------------------------------------------------------- */
+.fetch-row { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
+.fetch-row input[type='text'] { flex: 1; min-width: 150px; }
+.fetch-row select { flex: none; }
+.fetch-row .btn { flex: none; white-space: nowrap; }

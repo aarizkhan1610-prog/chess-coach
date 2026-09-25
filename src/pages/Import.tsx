@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { PROVIDERS, fetchGames, ImportError, type Provider } from '../import/providers';
 import { parsePgn, heroFor, type ParsedGame } from '../chess/pgn';
 import { DEPTH_PRESETS, type AnalysisDepthPreset, type Color } from '../types';
 import { useStore } from '../state/store';
@@ -33,6 +34,34 @@ export function ImportPage() {
 
   const engine = useEngineStatus();
   const { progress, run, cancel, reset } = useBatchAnalysis();
+
+  const [provider, setProvider] = useState<Provider>('lichess');
+  const [username, setUsername] = useState('');
+  const [count, setCount] = useState(10);
+  const [fetching, setFetching] = useState(false);
+  const [fetchError, setFetchError] = useState<{ message: string; hint?: string } | null>(null);
+  const [fetched, setFetched] = useState<string | null>(null);
+
+  async function fetchFromProfile() {
+    setFetching(true);
+    setFetchError(null);
+    setFetched(null);
+    try {
+      const result = await fetchGames(provider, username, count);
+      setText(result.pgn);
+      // Knowing the username is what lets us work out which side you played.
+      if (!settings.playerName) setSettings({ playerName: result.username });
+      setFetched(`Fetched ${result.count} game${result.count === 1 ? '' : 's'} for ${result.username}.`);
+    } catch (err) {
+      if (err instanceof ImportError) {
+        if (err.kind !== 'cancelled') setFetchError({ message: err.message, hint: err.hint });
+      } else {
+        setFetchError({ message: err instanceof Error ? err.message : String(err) });
+      }
+    } finally {
+      setFetching(false);
+    }
+  }
 
   const parsed = useMemo(() => (text.trim() ? parsePgn(text) : { games: [], errors: [] }), [text]);
 
@@ -74,8 +103,55 @@ export function ImportPage() {
 
       <div className="split">
         <div className="grid">
+          <Card title="Fetch from your account">
+            <div className="row" style={{ gap: 6, marginBottom: 12 }}>
+              {PROVIDERS.map((p) => (
+                <button
+                  key={p.id}
+                  className={`btn sm ${provider === p.id ? 'primary' : ''}`}
+                  onClick={() => { setProvider(p.id); setFetchError(null); }}
+                >
+                  {p.name}
+                </button>
+              ))}
+            </div>
+
+            <div className="fetch-row">
+              <input
+                type="text"
+                value={username}
+                placeholder={PROVIDERS.find((p) => p.id === provider)!.placeholder}
+                onChange={(e) => setUsername(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && username.trim() && !fetching) fetchFromProfile(); }}
+              />
+              <select value={count} onChange={(e) => setCount(Number(e.target.value))} style={{ width: 'auto' }}>
+                {[5, 10, 20].map((n) => <option key={n} value={n}>last {n}</option>)}
+              </select>
+              <button className="btn primary" disabled={!username.trim() || fetching} onClick={fetchFromProfile}>
+                {fetching ? <><Spinner /> Fetching…</> : 'Fetch games'}
+              </button>
+            </div>
+
+            {fetchError && (
+              <div style={{ marginTop: 10 }}>
+                <Banner kind="error">
+                  <div className="bold">{fetchError.message}</div>
+                  {fetchError.hint && <div className="small" style={{ marginTop: 3 }}>{fetchError.hint}</div>}
+                </Banner>
+              </div>
+            )}
+            {fetched && !fetchError && (
+              <div style={{ marginTop: 10 }}><Banner kind="ok">{fetched}</Banner></div>
+            )}
+
+            <div className="tiny faint" style={{ marginTop: 10 }}>
+              Only your username is sent, to {provider === 'lichess' ? 'Lichess' : 'Chess.com'}. The games come back
+              here and are analysed on this machine — nothing is uploaded.
+            </div>
+          </Card>
+
           <Card
-            title="Paste or drop a PGN"
+            title="Or paste a PGN"
             actions={
               <div className="row">
                 <button className="btn sm ghost" onClick={() => setText(SAMPLE)}>Use a sample game</button>
