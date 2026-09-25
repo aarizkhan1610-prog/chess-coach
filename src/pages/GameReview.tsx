@@ -26,12 +26,15 @@ export function GameReviewPage({ gameId }: { gameId: string }) {
   useEffect(() => {
     if (!game) return;
     const onKey = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement)?.tagName === 'INPUT' || (e.target as HTMLElement)?.tagName === 'TEXTAREA') return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+      // A browser or system shortcut should never also move the board.
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === 'ArrowLeft') { setPly((p) => Math.max(-1, p - 1)); e.preventDefault(); }
       else if (e.key === 'ArrowRight') { setPly((p) => Math.min(game.moves.length - 1, p + 1)); e.preventDefault(); }
       else if (e.key === 'Home') { setPly(-1); e.preventDefault(); }
       else if (e.key === 'End') { setPly(game.moves.length - 1); e.preventDefault(); }
-      else if (e.key === 'f') setFlipped((f) => !f);
+      else if (e.key === 'f' || e.key === 'F') setFlipped((f) => !f);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);

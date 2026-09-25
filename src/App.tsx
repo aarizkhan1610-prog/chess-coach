@@ -34,10 +34,13 @@ export default function App() {
 
   const setSettings = useStore((st) => st.setSettings);
   const collapsed = settings.sidebarCollapsed;
-  const toggleNav = useCallback(
-    () => setSettings({ sidebarCollapsed: !collapsed }),
-    [setSettings, collapsed],
-  );
+  const toggleNav = useCallback(() => {
+    // Below the breakpoint the panel is a top bar and cannot collapse. Flipping
+    // the flag there does nothing visible but silently decides what the user
+    // finds when the window widens again, so the shortcut is a no-op instead.
+    if (window.matchMedia('(max-width: 700px)').matches) return;
+    setSettings({ sidebarCollapsed: !collapsed });
+  }, [setSettings, collapsed]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = settings.theme;

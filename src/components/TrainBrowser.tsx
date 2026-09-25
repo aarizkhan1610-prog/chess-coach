@@ -73,13 +73,24 @@ export function TrainBrowser({
   children?: ReactNode;
 }) {
   const [trail, setTrail] = useState<TrainNode[]>([]);
+  /** Opened by a click. Owns the expanded panel. */
   const [selected, setSelected] = useState<TrainNode | null>(null);
+  /**
+   * Whatever the mouse is over. Previews on the board only.
+   *
+   * These were one piece of state, which made the control behave differently
+   * depending on the input device: hovering opened a row's panel, so the click
+   * that followed closed it again, while a touch user — who never hovers — saw
+   * the click open it. Hover now moves the board and nothing else, so a click
+   * means the same thing however you arrived at the row.
+   */
+  const [hovered, setHovered] = useState<TrainNode | null>(null);
 
   const level = trail.length ? (trail[trail.length - 1].children ?? []) : roots;
   const current = trail[trail.length - 1] ?? null;
 
-  // The board follows the selected row, falling back to the level you are in.
-  const shown = selected ?? current;
+  // The board follows the mouse, then the open row, then the level you are in.
+  const shown = hovered ?? selected ?? current;
   const { fen, last } = useMemo(() => {
     if (shown?.fen) return { fen: shown.fen, last: null };
     return fenFor(shown?.preview);
@@ -91,6 +102,7 @@ export function TrainBrowser({
     if (node.children?.length) {
       setTrail((t) => [...t, node]);
       setSelected(null);
+      setHovered(null);
       return;
     }
     if (node.summary || node.cta) {
@@ -103,6 +115,7 @@ export function TrainBrowser({
   function back() {
     setTrail((t) => t.slice(0, -1));
     setSelected(null);
+    setHovered(null);
   }
 
   return (
@@ -117,7 +130,7 @@ export function TrainBrowser({
 
       <div className="train-panel">
         <nav className="train-crumbs">
-          <button className="crumb" onClick={() => { setTrail([]); setSelected(null); }} disabled={!trail.length}>
+          <button className="crumb" onClick={() => { setTrail([]); setSelected(null); setHovered(null); }} disabled={!trail.length}>
             {rootLabel}
           </button>
           {trail.map((node, i) => (
@@ -125,7 +138,7 @@ export function TrainBrowser({
               <span className="crumb-sep" aria-hidden>/</span>
               <button
                 className="crumb"
-                onClick={() => { setTrail((t) => t.slice(0, i + 1)); setSelected(null); }}
+                onClick={() => { setTrail((t) => t.slice(0, i + 1)); setSelected(null); setHovered(null); }}
                 disabled={i === trail.length - 1}
               >
                 {node.label}
@@ -150,7 +163,10 @@ export function TrainBrowser({
                 <button
                   className={`train-row ${isSelected ? 'selected' : ''}`}
                   onClick={() => open(node)}
-                  onMouseEnter={() => { if (!node.children?.length) setSelected(node); }}
+                  onMouseEnter={() => setHovered(node)}
+                  onMouseLeave={() => setHovered((h) => (h?.id === node.id ? null : h))}
+                  onFocus={() => setHovered(node)}
+                  onBlur={() => setHovered((h) => (h?.id === node.id ? null : h))}
                 >
                   <span className="train-row-text">
                     <span className="train-row-label">{node.label}</span>
