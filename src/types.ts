@@ -258,8 +258,25 @@ export interface Profile {
 
 export type AnalysisDepthPreset = 'fast' | 'balanced' | 'deep';
 
-export const DEPTH_PRESETS: Record<AnalysisDepthPreset, { depth: number; label: string; note: string }> = {
-  fast:     { depth: 10, label: 'Fast',     note: '~5s per game — good enough to catch blunders' },
-  balanced: { depth: 14, label: 'Balanced', note: '~25s per game — catches most real mistakes' },
-  deep:     { depth: 18, label: 'Deep',     note: '~2min per game — finds subtle errors too' },
+export const DEPTH_PRESETS: Record<
+  AnalysisDepthPreset,
+  { depth: number; label: string; note: string; msPerPosition: number }
+> = {
+  fast:     { depth: 10, label: 'Fast',     note: 'Catches blunders and clear mistakes.',     msPerPosition: 30 },
+  balanced: { depth: 14, label: 'Balanced', note: 'Catches most real mistakes.',              msPerPosition: 110 },
+  deep:     { depth: 18, label: 'Deep',     note: 'Finds subtle errors too, at a cost in time.', msPerPosition: 520 },
 };
+
+/** Rough wall-clock estimate for a batch, in seconds. Measured on this engine build. */
+export function estimateSeconds(preset: AnalysisDepthPreset, positions: number): number {
+  return Math.round((positions * DEPTH_PRESETS[preset].msPerPosition) / 1000);
+}
+
+export function formatDuration(seconds: number): string {
+  if (seconds < 60) {
+    const s = Math.max(1, seconds);
+    return `${s} second${s === 1 ? '' : 's'}`;
+  }
+  const m = Math.round(seconds / 60);
+  return `${m} minute${m === 1 ? '' : 's'}`;
+}
