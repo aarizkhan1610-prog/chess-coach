@@ -295,25 +295,20 @@ tr.clickable:hover td { background: var(--surface-2); }
 /* ---------------------------------------------------------------- *
  * Layouts
  * ---------------------------------------------------------------- */
-.split { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(280px, 380px); gap: 20px; align-items: start; }
-.split.wide { grid-template-columns: minmax(320px, 560px) 1fr; }
+/*
+ * Layout columns are proportional rather than pixel-capped, so the board and
+ * its companion panel grow with the window instead of leaving a gap on a wide
+ * screen. The minimums stop either side collapsing before the breakpoint.
+ */
+.split { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(260px, 32%); gap: 20px; align-items: start; }
+.split.wide { grid-template-columns: minmax(300px, 46%) minmax(280px, 1fr); }
+.split > *, .split.wide > * { min-width: 0; }
 .board-col { display: flex; gap: 10px; align-items: stretch; }
 .board-col .board-wrap { flex: 1; min-width: 0; }
 
-.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 14px; }
-.cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(268px, 1fr)); gap: 14px; }
+.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(110px, 100%), 1fr)); gap: 14px; }
+.cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(268px, 100%), 1fr)); gap: 14px; }
 
-@media (max-width: 1000px) {
-  .split, .split.wide { grid-template-columns: 1fr; }
-}
-@media (max-width: 720px) {
-  .app { flex-direction: column; }
-  .sidebar { width: 100%; flex: none; height: auto; position: static; flex-direction: row;
-    overflow-x: auto; padding: 8px; align-items: center; }
-  .sidebar .brand, .sidebar .nav-section, .sidebar .sidebar-foot { display: none; }
-  .nav-item { width: auto; white-space: nowrap; }
-  .main { padding: 16px; }
-}
 
 /* ---------------------------------------------------------------- *
  * Misc
@@ -377,9 +372,10 @@ tr.clickable:hover td { background: var(--surface-2); }
 
 /* Copy on the left, a board you can actually play on the right. */
 .landing-hero {
-  display: grid; grid-template-columns: 1fr 320px; gap: 36px;
+  display: grid; grid-template-columns: minmax(280px, 1fr) minmax(260px, 34%); gap: 36px;
   align-items: center; margin-bottom: 34px;
 }
+.landing-hero > * { min-width: 0; }
 .landing-copy { text-align: left; }
 .landing-mark {
   width: 52px; height: 52px; margin: 0 0 16px;
@@ -398,7 +394,7 @@ tr.clickable:hover td { background: var(--surface-2); }
 }
 .landing-trust span { white-space: nowrap; }
 
-.path-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.path-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
 
 .path-card {
   display: flex; flex-direction: column; align-items: flex-start; gap: 0;
@@ -436,11 +432,6 @@ tr.clickable:hover td { background: var(--surface-2); }
   padding-top: 20px; border-top: 1px solid var(--border);
 }
 
-@media (max-width: 760px) {
-  .path-grid { grid-template-columns: 1fr; }
-  .landing-hero h1 { font-size: 1.6rem; }
-  .landing-lede { font-size: 0.96rem; }
-}
 
 /* ---------------------------------------------------------------- *
  * Guided tracks (lessons for a new user)
@@ -472,22 +463,18 @@ tr.clickable:hover td { background: var(--surface-2); }
 .track-step .btn { margin-top: 2px; }
 .track-step.done .track-body { opacity: 0.72; }
 
-@media (max-width: 620px) {
-  .track-step { flex-wrap: wrap; }
-  .track-step .btn { margin-left: 45px; }
-}
 
 /* ---------------------------------------------------------------- *
  * First repertoire chooser
  * ---------------------------------------------------------------- */
 .rep-rows { display: grid; gap: 14px; }
 .rep-row {
-  display: grid; grid-template-columns: 150px 1fr; gap: 16px; align-items: start;
+  display: grid; grid-template-columns: minmax(120px, 20%) 1fr; gap: 16px; align-items: start;
   padding-bottom: 14px; border-bottom: 1px solid var(--border);
 }
 .rep-row:last-child { border-bottom: none; padding-bottom: 0; }
 .rep-role { padding-top: 2px; }
-.rep-picks { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.rep-picks { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
 .rep-pick {
   display: block; text-decoration: none; color: inherit;
   background: var(--surface-2); border: 1px solid var(--border);
@@ -496,15 +483,11 @@ tr.clickable:hover td { background: var(--surface-2); }
 }
 .rep-pick:hover { border-color: var(--accent); background: var(--bg-elev); }
 
-@media (max-width: 780px) {
-  .rep-row { grid-template-columns: 1fr; gap: 9px; }
-  .rep-picks { grid-template-columns: 1fr; }
-}
 
 /* ---------------------------------------------------------------- *
  * Path strip (the chooser, once you have data)
  * ---------------------------------------------------------------- */
-.path-strip { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.path-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 10px; }
 
 .strip-card {
   display: flex; align-items: center; gap: 12px;
@@ -533,7 +516,6 @@ tr.clickable:hover td { background: var(--surface-2); }
 .strip-arrow { flex: none; color: var(--text-faint); font-size: 1rem; }
 .strip-card:hover .strip-arrow { color: var(--accent); }
 
-@media (max-width: 760px) { .path-strip { grid-template-columns: 1fr; } }
 
 /* ---------------------------------------------------------------- *
  * Hero puzzle
@@ -557,23 +539,17 @@ tr.clickable:hover td { background: var(--surface-2); }
 .hero-puzzle-foot.idle { justify-content: space-between; }
 .hero-puzzle-foot.wrong .hero-goal { color: var(--v-mistake); }
 
-@media (max-width: 860px) {
-  .landing-hero { grid-template-columns: 1fr; gap: 24px; justify-items: center; }
-  .landing-copy { text-align: center; }
-  .landing-mark { margin: 0 auto 16px; }
-  .landing-lede { margin: 0 auto 18px; }
-  .landing-trust { justify-content: center; }
-  .hero-puzzle { width: 100%; max-width: 340px; }
-}
 
 /* ---------------------------------------------------------------- *
  * Train browser — board left, one list of choices right
  * ---------------------------------------------------------------- */
 .train {
-  display: grid; grid-template-columns: minmax(280px, 420px) 1fr;
+  display: grid; grid-template-columns: minmax(260px, 42%) minmax(300px, 1fr);
   gap: 26px; align-items: start;
 }
-.train-board { position: sticky; top: 24px; }
+.train > * { min-width: 0; }
+/* Capped only so the board does not become absurd on an ultrawide display. */
+.train-board { position: sticky; top: 24px; max-width: 620px; }
 .train-caption {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   margin-top: 10px; font-size: 0.83rem; color: var(--text-dim);
@@ -622,10 +598,6 @@ tr.clickable:hover td { background: var(--surface-2); }
 }
 .train-row.selected { border-radius: var(--radius) var(--radius) 0 0; }
 
-@media (max-width: 900px) {
-  .train { grid-template-columns: 1fr; gap: 18px; }
-  .train-board { position: static; max-width: 380px; margin: 0 auto; width: 100%; }
-}
 
 .puzzle-hud {
   gap: 22px; padding: 13px 16px; margin-bottom: 14px;
@@ -667,11 +639,6 @@ tr.clickable:hover td { background: var(--surface-2); }
 .nav-restore:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* On narrow screens the nav is already a horizontal bar; leave it alone. */
-@media (max-width: 720px) {
-  .app.nav-collapsed .sidebar { display: flex; }
-  .app.nav-collapsed .main { padding-left: 16px; }
-  .nav-toggle, .nav-restore { display: none; }
-}
 
 /* ---------------------------------------------------------------- *
  * Fetch-from-profile row
@@ -680,3 +647,45 @@ tr.clickable:hover td { background: var(--surface-2); }
 .fetch-row input[type='text'] { flex: 1; min-width: 150px; }
 .fetch-row select { flex: none; }
 .fetch-row .btn { flex: none; white-space: nowrap; }
+
+/* ---------------------------------------------------------------- *
+ * Responsive behaviour
+ *
+ * Two breakpoints, deliberately. Previously each component collapsed at its
+ * own width — 620, 720, 760, 780, 860, 900 and 1000 — so dragging a window
+ * edge produced a run of unrelated jumps. Everything above these two values is
+ * fluid, so the only discontinuities are the two that genuinely change the
+ * shape of the page.
+ * ---------------------------------------------------------------- */
+
+/* Side-by-side becomes stacked. */
+@media (max-width: 980px) {
+  .split, .split.wide, .train, .landing-hero { grid-template-columns: 1fr; }
+  .train { gap: 18px; }
+  /* Sticky is pointless once stacked, and it is a source of jitter on resize. */
+  .train-board { position: static; max-width: 420px; margin: 0 auto; width: 100%; }
+  .landing-hero { gap: 24px; justify-items: center; }
+  .landing-copy { text-align: center; }
+  .landing-mark { margin: 0 auto 16px; }
+  .landing-lede { margin: 0 auto 18px; }
+  .landing-trust { justify-content: center; }
+  .hero-puzzle { width: 100%; max-width: 360px; }
+  .rep-row { grid-template-columns: 1fr; gap: 9px; }
+}
+
+/* The navigation rail becomes a top bar. */
+@media (max-width: 700px) {
+  .app, .app.nav-collapsed { flex-direction: column; }
+  .sidebar, .app.nav-collapsed .sidebar {
+    display: flex; width: 100%; flex: none; height: auto; position: static;
+    flex-direction: row; overflow-x: auto; padding: 8px; align-items: center;
+  }
+  .sidebar .brand, .sidebar .nav-section, .sidebar .sidebar-foot { display: none; }
+  .nav-item { width: auto; white-space: nowrap; }
+  .main, .app.nav-collapsed .main { padding: 16px; }
+  .nav-toggle, .nav-restore { display: none; }
+  .landing-hero h1 { font-size: 1.6rem; }
+  .landing-lede { font-size: 0.96rem; }
+  .track-step { flex-wrap: wrap; }
+  .track-step .btn { margin-left: 45px; }
+}
