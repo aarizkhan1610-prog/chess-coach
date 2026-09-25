@@ -10,6 +10,37 @@ npm install
 npm run dev
 ```
 
+## Where you start
+
+The app opens on four pathways rather than a dashboard, because a dashboard
+with no games in it tells you nothing. They are phrased as intentions, not
+features:
+
+- **Show me my mistakes** — import a game and find out what it cost you
+- **Teach me the fundamentals** — the habits that decide games below master level
+- **Grow my opening repertoire** — proper courses for both colours
+- **Sharpen my tactics** — puzzles, and seven ways to drill them
+
+Each destination is built to be worth arriving at with no data at all:
+
+- **Lessons** lead with a *core track* — eleven lessons in the order that pays
+  off fastest, each stating why it sits where it does, with progress and a
+  resume point. It is a fallback, not the goal: the personalised plan takes
+  over the moment there are games to rank by, because an order built from your
+  own mistakes always beats a fixed one.
+- **Openings** lead with a *first repertoire* panel, which reduces 27 courses to
+  the three decisions a repertoire actually is — what you open with, and an
+  answer to each of 1.e4 and 1.d4 — offering two low-theory options for each.
+- **Puzzles** mark Practice as the place to begin, and say why.
+
+The pathways are not discarded once the app has data. The same definitions
+render as a compact strip above the dashboard, resolved against real state —
+how many mistakes were found, which lesson is next, which opening you have
+started or actually played, how many puzzles came from your own blunders — and
+their destinations retarget to match. The beginner scaffolding stands down on
+its own: the core track yields to the personal plan, and the first-repertoire
+panel gives way to the openings you actually play.
+
 ## What it does
 
 **Import and analyse.** Paste or drop a PGN from Lichess, Chess.com or a real
@@ -129,8 +160,10 @@ src/
   engine/      Stockfish worker wrapper, analysis pipeline, React hooks
   coach/       weakness profiling, lessons, puzzle generation, spaced repetition
   openings/    27 opening courses and opening detection
-  components/  board (with hand-drawn SVG pieces), eval bar and graph, primitives
-  pages/       import, review, profile, lessons, puzzles, openings, settings
+  components/  board (with hand-drawn SVG pieces), eval bar and graph, pathway
+               definitions, primitives
+  pages/       landing, import, review, profile, lessons, puzzles, openings,
+               settings
 scripts/       starter-puzzle generator (npm run build:puzzles)
 tests/         see above
 ```

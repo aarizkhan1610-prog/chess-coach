@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Chess } from 'chess.js';
-import { ALL_OPENINGS, GROUP_LABEL, firstRepertoire, openingById, openingsByGroup, type Opening } from '../openings';
+import { ALL_OPENINGS, firstRepertoire, openingById, openingsByGroup, type Opening, type OpeningGroup } from '../openings';
+import { TrainBrowser, type TrainNode } from '../components/TrainBrowser';
 import { Board } from '../components/Board';
 import { Card, Empty, Meter, Pill, navigate } from '../components/ui';
 import { useGames, useStore } from '../state/store';
@@ -8,23 +9,119 @@ import type { Color } from '../types';
 
 const DIFFICULTY = ['', 'Beginner-friendly', 'Intermediate', 'Demanding'];
 
+const GROUP_NODE: Record<OpeningGroup, { label: string; detail: string; preview: string[]; orientation: Color }> = {
+  e4: { label: 'I open with 1.e4', detail: 'Italian, Ruy López, Scotch, Vienna and the King\'s Gambit', preview: ['e4'], orientation: 'w' },
+  d4: { label: 'I open with 1.d4', detail: 'London, Queen\'s Gambit and the Catalan', preview: ['d4'], orientation: 'w' },
+  flank: { label: 'I open with something else', detail: 'English and Réti — flexible systems that transpose everywhere', preview: ['c4'], orientation: 'w' },
+  'vs-e4': { label: 'Answering 1.e4 as Black', detail: 'Sicilian, French, Caro-Kann, Petrov and more', preview: ['e4'], orientation: 'b' },
+  'vs-d4': { label: 'Answering 1.d4 as Black', detail: 'Nimzo-Indian, King\'s Indian, Grünfeld, Slav and more', preview: ['d4'], orientation: 'b' },
+};
+
+const DIFFICULTY_LABEL = ['', 'Beginner-friendly', 'Intermediate', 'Demanding'];
+
+/** First sentence, clipped at a word boundary — the row is a menu entry. */
+function tagline(summary: string, max = 76): string {
+  const first = summary.split(/(?<=\.)\s/)[0] ?? summary;
+  if (first.length <= max) return first;
+  const cut = first.slice(0, max);
+  return `${cut.slice(0, cut.lastIndexOf(' '))}…`;
+}
+
+function openingNode(o: Opening, step: number): TrainNode {
+  return {
+    id: o.id,
+    label: o.name,
+    detail: tagline(o.summary),
+    meta: step > 0 ? 'started' : o.eco,
+    preview: o.moves,
+    orientation: o.side,
+    href: `/openings/${o.id}`,
+    cta: step > 0 ? 'Continue' : 'Open the course',
+    summary: (
+      <div className="row wrap" style={{ gap: 6 }}>
+        <Pill>{o.side === 'w' ? 'for White' : 'for Black'}</Pill>
+        <Pill>{DIFFICULTY_LABEL[o.difficulty]}</Pill>
+        <Pill>{o.branches.length} variations</Pill>
+        {o.traps.length > 0 && <Pill>{o.traps.length} trap{o.traps.length === 1 ? '' : 's'}</Pill>}
+      </div>
+    ),
+  };
+}
+
 export function OpeningsPage() {
   const groups = useMemo(() => openingsByGroup(), []);
   const openingStep = useStore((s) => s.openingStep);
-  const quizBest = useStore((s) => s.openingQuizBest);
   const games = useGames();
   const [filter, setFilter] = useState('');
 
-  // Highlight courses for the openings the user actually plays.
   const played = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const g of games) if (g.openingId) counts.set(g.openingId, (counts.get(g.openingId) ?? 0) + 1);
+    for (const g of games) if (g.openingId && openingById(g.openingId)) counts.set(g.openingId, (counts.get(g.openingId) ?? 0) + 1);
     return counts;
   }, [games]);
 
   const q = filter.trim().toLowerCase();
-  const matches = (o: Opening) =>
-    !q || o.name.toLowerCase().includes(q) || o.eco.toLowerCase().includes(q) || o.style.some((s) => s.includes(q));
+
+  const searchNodes = useMemo(() => {
+    if (!q) return [];
+    return ALL_OPENINGS
+      .filter((o) => o.name.toLowerCase().includes(q) || o.eco.toLowerCase().includes(q) || o.style.some((x) => x.includes(q)))
+      .map((o) => openingNode(o, openingStep[o.id] ?? 0));
+  }, [q, openingStep]);
+
+  const browseNodes = useMemo<TrainNode[]>(() => {
+    const nodes: TrainNode[] = [];
+
+    if (played.size) {
+      nodes.push({
+        id: 'played',
+        label: 'The openings you actually play',
+        detail: 'Taken from the games you have imported',
+        meta: `${played.size}`,
+        children: [...played.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .flatMap(([id, n]) => {
+            const o = openingById(id);
+            return o ? [{ ...openingNode(o, openingStep[id] ?? 0), meta: `${n} game${n === 1 ? '' : 's'}` }] : [];
+          }),
+      });
+    }
+
+    nodes.push({
+      id: 'first',
+      label: 'Build a first repertoire',
+      detail: 'Three decisions and you have a complete set of openings',
+      meta: '3 choices',
+      children: firstRepertoire().map((slot) => ({
+        id: slot.role,
+        label: slot.role,
+        detail: slot.question,
+        meta: `${slot.picks.length} options`,
+        preview: slot.role === 'Against 1.e4' ? ['e4'] : slot.role === 'Against 1.d4' ? ['d4'] : [],
+        orientation: slot.role === 'As White' ? 'w' : 'b',
+        children: slot.picks.map(({ opening, why }, i) => ({
+          ...openingNode(opening, openingStep[opening.id] ?? 0),
+          meta: i === 0 ? 'easiest' : opening.eco,
+          detail: why,
+        })),
+      })),
+    });
+
+    for (const { group, openings } of groups) {
+      if (!openings.length) continue;
+      const g = GROUP_NODE[group];
+      nodes.push({
+        id: group,
+        label: g.label,
+        detail: g.detail,
+        meta: `${openings.length}`,
+        preview: g.preview,
+        orientation: g.orientation,
+        children: openings.map((o) => openingNode(o, openingStep[o.id] ?? 0)),
+      });
+    }
+    return nodes;
+  }, [groups, played, openingStep]);
 
   return (
     <div>
@@ -32,7 +129,9 @@ export function OpeningsPage() {
         <div className="row wrap">
           <div>
             <h1>Openings</h1>
-            <div className="sub">{ALL_OPENINGS.length} courses, each taught move by move with the ideas behind them.</div>
+            <div className="sub">
+              {q ? `${searchNodes.length} match${searchNodes.length === 1 ? '' : 'es'}` : 'Pick how you play, and work down from there.'}
+            </div>
           </div>
           <div className="spacer" />
           <input
@@ -40,118 +139,17 @@ export function OpeningsPage() {
             placeholder="Search by name, ECO or style…"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            style={{ maxWidth: 260 }}
+            style={{ maxWidth: 240 }}
           />
         </div>
       </div>
 
-      {played.size > 0 && !q && (
-        <Card title="The openings you actually play" style={{ marginBottom: 18 }}>
-          <div className="row wrap" style={{ gap: 8 }}>
-            {[...played.entries()]
-              .filter(([id]) => openingById(id))
-              .sort((a, b) => b[1] - a[1])
-              .map(([id, n]) => (
-                <a key={id} href={`#/openings/${id}`} style={{ textDecoration: 'none' }}>
-                  <Pill color="var(--accent)">{openingById(id)!.name} · {n} game{n === 1 ? '' : 's'} →</Pill>
-                </a>
-              ))}
-            {[...played.keys()].every((id) => !openingById(id)) && (
-              <span className="small dim">None of your openings have a course yet.</span>
-            )}
-          </div>
-        </Card>
-      )}
-
-      {!played.size && !q && <FirstRepertoire />}
-
-      {groups.map(({ group, openings }) => {
-        const shown = openings.filter(matches);
-        if (!shown.length) return null;
-        return (
-          <div key={group} style={{ marginBottom: 22 }}>
-            <h2 style={{ marginBottom: 10 }}>{GROUP_LABEL[group]}</h2>
-            <div className="cards-grid">
-              {shown.map((o) => {
-                const step = openingStep[o.id] ?? 0;
-                const pct = Math.round((step / Math.max(1, o.steps.length - 1)) * 100);
-                return (
-                  <a key={o.id} href={`#/openings/${o.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                    <Card className="mode-card">
-                      <div className="row" style={{ marginBottom: 5 }}>
-                        <span className="bold">{o.name}</span>
-                        <div className="spacer" />
-                        <Pill>{o.eco}</Pill>
-                      </div>
-                      <div className="small dim" style={{ minHeight: 56 }}>{o.summary}</div>
-                      <div className="row wrap" style={{ gap: 5, marginTop: 8 }}>
-                        {o.style.slice(0, 3).map((s) => <Pill key={s}>{s}</Pill>)}
-                        <div className="spacer" />
-                        {played.has(o.id) && <Pill color="var(--accent)">you play this</Pill>}
-                      </div>
-                      {step > 0 && (
-                        <div style={{ marginTop: 9 }}>
-                          <Meter value={pct} label={quizBest[o.id] ? `quiz ${quizBest[o.id]}%` : `${pct}%`} />
-                        </div>
-                      )}
-                    </Card>
-                  </a>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
+      <TrainBrowser
+        key={q ? 'search' : 'browse'}
+        rootLabel={q ? 'Results' : 'All openings'}
+        roots={q ? searchNodes : browseNodes}
+      />
     </div>
-  );
-}
-
-/**
- * For someone with no games imported, 27 courses is a wall rather than a menu.
- * This narrows it to the three decisions a repertoire actually consists of,
- * with two low-theory options for each.
- */
-function FirstRepertoire() {
-  const slots = useMemo(() => firstRepertoire(), []);
-  const openingStep = useStore((s) => s.openingStep);
-
-  return (
-    <Card className="repertoire" style={{ marginBottom: 24 }}>
-      <div style={{ marginBottom: 14 }}>
-        <h2 style={{ marginBottom: 4 }}>Build a first repertoire</h2>
-        <div className="small dim">
-          A repertoire is really just three decisions. Pick one from each row and you have a complete
-          set of openings you can play in every game — no memorisation marathon required.
-        </div>
-      </div>
-
-      <div className="rep-rows">
-        {slots.map((slot) => (
-          <div className="rep-row" key={slot.role}>
-            <div className="rep-role">
-              <div className="bold">{slot.role}</div>
-              <div className="tiny faint">{slot.question}</div>
-            </div>
-            <div className="rep-picks">
-              {slot.picks.map(({ opening, why }, i) => (
-                <a className="rep-pick" key={opening.id} href={`#/openings/${opening.id}`}>
-                  <div className="row" style={{ gap: 7, marginBottom: 3 }}>
-                    <span className="bold">{opening.name}</span>
-                    {i === 0 && <Pill color="var(--accent)">easiest</Pill>}
-                    {(openingStep[opening.id] ?? 0) > 0 && <Pill color="var(--good)">started</Pill>}
-                  </div>
-                  <div className="small dim">{why}</div>
-                </a>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="tiny faint" style={{ marginTop: 14 }}>
-        Everything below is the full library — come back to it once you have one of each.
-      </div>
-    </Card>
   );
 }
 

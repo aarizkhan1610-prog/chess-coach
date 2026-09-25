@@ -70,6 +70,16 @@ export function Board({
   const svgRef = useRef<SVGSVGElement>(null);
   const [selected, setSelected] = useState<Square | null>(null);
   const [drag, setDrag] = useState<{ from: Square; x: number; y: number } | null>(null);
+  /**
+   * The authoritative pointer origin.
+   *
+   * `drag` state cannot be used for this: pointerdown and pointerup can arrive
+   * inside a single React batch, so the pointerup handler may still close over
+   * the pre-render value. That let a click-to-move fire onMove twice — once
+   * from pointerdown completing the move, once from pointerup replaying it
+   * against the stale position. A ref is read and written synchronously.
+   */
+  const dragFrom = useRef<Square | null>(null);
   const [promo, setPromo] = useState<{ from: Square; to: Square } | null>(null);
 
   const chess = useMemo(() => {
@@ -85,6 +95,7 @@ export function Board({
     setSelected(null);
     setDrag(null);
     setPromo(null);
+    dragFrom.current = null;
   }, [fen]);
 
   const board = chess?.board() ?? [];
@@ -159,29 +170,43 @@ export function Board({
     const piece = chess?.get(sq as never);
 
     if (selected && selected !== sq) {
-      if (tryMove(selected, sq)) return;
+      if (tryMove(selected, sq)) {
+        // The move is done; pointerup must not replay it.
+        dragFrom.current = null;
+        setDrag(null);
+        return;
+      }
     }
     if (piece && piece.color === turn) {
       setSelected(sq);
+      dragFrom.current = sq;
       const { x, y } = pointerXY(e);
       setDrag({ from: sq, x, y });
-      (e.target as Element).setPointerCapture?.(e.pointerId);
+      try {
+        (e.target as Element).setPointerCapture?.(e.pointerId);
+      } catch {
+        /* Synthetic or already-released pointers cannot be captured. */
+      }
     } else {
       setSelected(null);
+      dragFrom.current = null;
+      setDrag(null);
     }
   }
 
   function onPointerMove(e: React.PointerEvent) {
-    if (!drag) return;
+    const from = dragFrom.current;
+    if (!from) return;
     const { x, y } = pointerXY(e);
-    setDrag({ ...drag, x, y });
+    setDrag({ from, x, y });
   }
 
   function onPointerUp(e: React.PointerEvent) {
-    if (!drag) return;
-    const sq = pointerSquare(e);
-    const from = drag.from;
+    const from = dragFrom.current;
+    dragFrom.current = null;
+    if (!from) return;
     setDrag(null);
+    const sq = pointerSquare(e);
     // A click (release on the same square) keeps the piece selected instead.
     if (sq && sq !== from) {
       if (!tryMove(from, sq)) setSelected(from);
@@ -204,7 +229,7 @@ export function Board({
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        onPointerCancel={() => setDrag(null)}
+        onPointerCancel={() => { dragFrom.current = null; setDrag(null); }}
         style={{ cursor: interactive ? (drag ? 'grabbing' : 'pointer') : 'default' }}
       >
         {/* squares */}

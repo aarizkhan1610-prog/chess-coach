@@ -4,126 +4,110 @@ import { useGames, useStore } from '../state/store';
 import { buildProfile } from '../coach/weaknesses';
 import { ALL_LESSONS, buildPlan, coreTrack, examplesFor, lessonFor, remainingLessons, type Lesson, type LessonStep } from '../coach/lessons';
 import { Board } from '../components/Board';
-import { Card, Empty, Meter, Pill, navigate, formatDate } from '../components/ui';
+import { Card, Empty, Pill, navigate, formatDate } from '../components/ui';
+import { TrainBrowser, type TrainNode } from '../components/TrainBrowser';
 import { MOTIF_META, type MotifTag } from '../types';
+
+/** The board shows a lesson's own worked position, when it has one. */
+function lessonFen(lesson: Lesson): { fen?: string; caption?: string } {
+  const step = lesson.steps.find((x) => x.kind === 'position');
+  if (step && step.kind === 'position') return { fen: step.fen, caption: step.prompt };
+  return {};
+}
+
+function lessonNode(lesson: Lesson, done: boolean, prefix?: string): TrainNode {
+  const pos = lessonFen(lesson);
+  return {
+    id: lesson.tag,
+    label: prefix ? `${prefix}. ${lesson.title}` : lesson.title,
+    detail: lesson.oneLiner,
+    meta: done ? 'done' : `${lesson.estMinutes} min`,
+    fen: pos.fen,
+    caption: pos.caption ?? 'No position in this lesson — it is all board habits',
+    href: `/lessons/${lesson.tag}`,
+    cta: done ? 'Revisit' : 'Start the lesson',
+    summary: (
+      <div className="row wrap" style={{ gap: 6 }}>
+        <Pill>{MOTIF_META[lesson.tag].family}</Pill>
+        <Pill>{lesson.estMinutes} min</Pill>
+        <Pill>{lesson.steps.length} steps</Pill>
+        {done && <Pill color="var(--good)">done</Pill>}
+      </div>
+    ),
+  };
+}
+
+const FAMILY_NODE = {
+  tactics: { label: 'Tactics', detail: 'Hanging pieces, forks, pins, back ranks — how material changes hands' },
+  strategy: { label: 'Strategy', detail: 'King safety, pawn structure, trades and the slower decisions' },
+  phase: { label: 'Converting, defending and endgames', detail: 'Winning won positions, saving bad ones, and the clock' },
+} as const;
 
 export function LessonsPage() {
   const games = useGames();
   const profile = useMemo(() => buildProfile(games), [games]);
   const plan = useMemo(() => buildPlan(profile, 6), [profile]);
-  const rest = useMemo(() => remainingLessons(plan), [plan]);
   const done = useStore((s) => s.lessonDone);
   const track = useMemo(() => coreTrack(done), [done]);
 
-  const personalised = plan.length > 0;
   const trackDone = track.filter((t) => t.done).length;
-  // Where to pick up: the first unfinished step.
-  const nextStep = track.find((t) => !t.done) ?? track[0];
+  const lessonsDone = ALL_LESSONS.filter((l) => done[l.tag]).length;
+
+  const roots = useMemo<TrainNode[]>(() => {
+    const nodes: TrainNode[] = [];
+
+    if (plan.length) {
+      nodes.push({
+        id: 'plan',
+        label: 'Your plan',
+        detail: 'Ranked by what your own games say is costing you the most',
+        meta: `${plan.length}`,
+        children: plan.map((item) => ({
+          ...lessonNode(item.lesson, Boolean(done[item.lesson.tag])),
+          detail: item.reason,
+        })),
+      });
+    }
+
+    nodes.push({
+      id: 'track',
+      label: plan.length ? 'The core track' : 'Start here: the core track',
+      detail: 'The habits that decide most games, in the order that pays off fastest',
+      meta: `${trackDone}/${track.length}`,
+      children: track.map((step, i) => ({
+        ...lessonNode(step.lesson, step.done, String(i + 1)),
+        detail: step.why,
+      })),
+    });
+
+    for (const family of ['tactics', 'strategy', 'phase'] as const) {
+      const lessons = ALL_LESSONS.filter((l) => MOTIF_META[l.tag].family === family);
+      if (!lessons.length) continue;
+      const doneCount = lessons.filter((l) => done[l.tag]).length;
+      nodes.push({
+        id: family,
+        label: FAMILY_NODE[family].label,
+        detail: FAMILY_NODE[family].detail,
+        meta: `${doneCount}/${lessons.length}`,
+        children: lessons.map((l) => lessonNode(l, Boolean(done[l.tag]))),
+      });
+    }
+    return nodes;
+  }, [plan, track, trackDone, done]);
 
   return (
     <div>
       <div className="page-head">
         <h1>Lessons</h1>
         <div className="sub">
-          {personalised
-            ? 'Ordered by what your games say is costing you the most.'
-            : 'Start at the top and work down — the order is the point. Once you import games, this list reorders itself around your actual weaknesses.'}
+          {plan.length
+            ? 'Your plan comes from your own games. The rest is there whenever you want it.'
+            : 'Twenty-six lessons. Start with the track and the order is decided for you.'}
+          {lessonsDone > 0 && ` · ${lessonsDone} of ${ALL_LESSONS.length} completed`}
         </div>
       </div>
 
-      {personalised ? (
-        <Card title="Your plan" className="pad-0">
-          <div style={{ padding: 16 }}>
-            {plan.map((item, i) => (
-              <div className="weakness-row" key={item.lesson.tag}>
-                <div className="weakness-rank">{i + 1}</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="row wrap" style={{ gap: 7 }}>
-                    <span className="bold">{item.lesson.title}</span>
-                    {done[item.lesson.tag] && <Pill color="var(--good)">done</Pill>}
-                    <span className="tiny faint">{item.lesson.estMinutes} min</span>
-                  </div>
-                  <div className="tiny faint">{item.reason}</div>
-                  <div style={{ marginTop: 5 }}><Meter value={item.severity} /></div>
-                </div>
-                <a className="btn sm primary" href={`#/lessons/${item.lesson.tag}`}>Start</a>
-              </div>
-            ))}
-          </div>
-        </Card>
-      ) : (
-        <>
-          <Card className="track-head">
-            <div className="row wrap" style={{ gap: 14 }}>
-              <div style={{ flex: 1, minWidth: 220 }}>
-                <h2 style={{ marginBottom: 4 }}>The core track</h2>
-                <div className="small dim">
-                  Eleven lessons covering the habits that decide most games. About two hours in total,
-                  and you can stop after any one of them.
-                </div>
-              </div>
-              <div className="track-progress">
-                <div className="row" style={{ gap: 8 }}>
-                  <span className="bold mono">{trackDone}/{track.length}</span>
-                  <span className="tiny faint">done</span>
-                </div>
-                <Meter value={trackDone} max={track.length} />
-              </div>
-              {nextStep && (
-                <a className="btn primary" href={`#/lessons/${nextStep.lesson.tag}`}>
-                  {trackDone === 0 ? 'Start the track' : trackDone === track.length ? 'Review the track' : 'Continue'} →
-                </a>
-              )}
-            </div>
-          </Card>
-
-          <ol className="track">
-            {track.map((step, i) => (
-              <li key={step.lesson.tag} className={`track-step ${step.done ? 'done' : ''}`}>
-                <a className="track-num" href={`#/lessons/${step.lesson.tag}`} aria-hidden>
-                  {step.done ? '\u2713' : i + 1}
-                </a>
-                <div className="track-body">
-                  <div className="row wrap" style={{ gap: 8 }}>
-                    <a className="bold track-title" href={`#/lessons/${step.lesson.tag}`}>{step.lesson.title}</a>
-                    {step.done && <Pill color="var(--good)">done</Pill>}
-                    <span className="tiny faint">{step.lesson.estMinutes} min</span>
-                  </div>
-                  <div className="small dim">{step.why}</div>
-                </div>
-                <a className="btn sm" href={`#/lessons/${step.lesson.tag}`}>
-                  {step.done ? 'Revisit' : 'Open'}
-                </a>
-              </li>
-            ))}
-          </ol>
-        </>
-      )}
-
-      <div style={{ marginTop: 22 }}>
-        <h2 style={{ marginBottom: 4 }}>{personalised ? 'Everything else' : 'The rest of the library'}</h2>
-        <div className="small dim" style={{ marginBottom: 12 }}>
-          {personalised
-            ? 'Every lesson, whether or not it has shown up in your games.'
-            : 'More specific patterns. Worth coming back to once the core track is behind you.'}
-        </div>
-        <div className="cards-grid">
-          {(personalised ? rest : ALL_LESSONS.filter((l) => !track.some((t) => t.lesson.tag === l.tag))).map((l) => (
-            <a key={l.tag} href={`#/lessons/${l.tag}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-              <Card className="mode-card">
-                <div className="row" style={{ marginBottom: 6 }}>
-                  <Pill>{MOTIF_META[l.tag].family}</Pill>
-                  <div className="spacer" />
-                  {done[l.tag] && <Pill color="var(--good)">done</Pill>}
-                  <span className="tiny faint">{l.estMinutes} min</span>
-                </div>
-                <div className="bold">{l.title}</div>
-                <div className="small dim" style={{ marginTop: 3 }}>{l.oneLiner}</div>
-              </Card>
-            </a>
-          ))}
-        </div>
-      </div>
+      <TrainBrowser rootLabel="All lessons" roots={roots} />
     </div>
   );
 }

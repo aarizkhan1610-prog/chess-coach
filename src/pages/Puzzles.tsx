@@ -7,6 +7,7 @@ import { STARTER_PUZZLES } from '../coach/starterPuzzles';
 import { selectPuzzles } from '../coach/srs';
 import { Board } from '../components/Board';
 import { Card, Empty, Pill, Spinner, formatClock, navigate } from '../components/ui';
+import { TrainBrowser, type TrainNode } from '../components/TrainBrowser';
 import { MOTIF_META, type MotifTag, type Puzzle } from '../types';
 import { getEngine } from '../engine/uci';
 import { winPctFor } from '../chess/evaluation';
@@ -64,17 +65,129 @@ function modeFor(id: string, topTags: MotifTag[]): ModeConfig | null {
 /* ------------------------------------------------------------------ *
  * Mode picker
  * ------------------------------------------------------------------ */
+const MODE_GROUPS: { id: string; label: string; detail: string; modes: string[] }[] = [
+  {
+    id: 'practice',
+    label: 'Practice, at your own pace',
+    detail: 'No clock, no lives. Best place to start and the best way to actually learn.',
+    modes: ['train', 'weakness', 'rewind'],
+  },
+  {
+    id: 'challenge',
+    label: 'Timed and challenge modes',
+    detail: 'A clock, lives, or both. More fun once the patterns are familiar.',
+    modes: ['rush', 'streak', 'survival'],
+  },
+];
+
 export function PuzzlesPage() {
   const games = useGames();
   const settings = useStore((s) => s.settings);
   const solverRating = useStore((s) => s.solverRating);
   const totals = useStore((s) => s.totals);
-  const sessions = useStore((s) => s.sessions);
+  const progress = useStore((s) => s.progress);
 
+  const profile = useMemo(() => buildProfile(games), [games]);
   const mine = useMemo(
     () => puzzlesFromGames(games, { includePunish: settings.includePunishPuzzles }),
     [games, settings.includePunishPuzzles],
   );
+  const pool = useMemo(() => [...mine, ...STARTER_PUZZLES], [mine]);
+
+  /** A real position from the pool, so choosing a mode is not abstract. */
+  const sampleFor = useMemo(() => {
+    return (tags?: MotifTag[]): Puzzle | undefined => {
+      const candidates = tags?.length ? pool.filter((p) => p.tags.some((t) => tags.includes(t))) : pool;
+      return candidates[0];
+    };
+  }, [pool]);
+
+  function modeNode(m: ModeConfig): TrainNode {
+    const sample = sampleFor(m.tags);
+    const disabled = Boolean(m.ownGamesOnly) && mine.length === 0;
+    return {
+      id: m.id,
+      label: m.name,
+      detail: disabled ? 'Import a game first — these come from your own blunders.' : m.blurb,
+      meta: m.timeLimit ? `${m.timeLimit / 60} min` : m.lives ? `${m.lives} ${m.lives === 1 ? 'life' : 'lives'}` : 'untimed',
+      fen: sample?.fen,
+      orientation: sample?.solverColor,
+      caption: sample ? 'A puzzle you might get' : undefined,
+      href: disabled ? undefined : `/puzzles/${m.id}`,
+      cta: 'Start',
+      summary: (
+        <div className="row wrap" style={{ gap: 6 }}>
+          {m.timeLimit > 0 && <Pill>{m.timeLimit / 60} minutes</Pill>}
+          {m.lives > 0 && <Pill>{m.lives} {m.lives === 1 ? 'life' : 'lives'}</Pill>}
+          {m.suddenDeath && <Pill color="var(--bad)">one mistake ends it</Pill>}
+          {m.spaced && <Pill>spaced repetition</Pill>}
+          {m.escalating && <Pill>gets harder</Pill>}
+        </div>
+      ),
+    };
+  }
+
+  const roots = useMemo<TrainNode[]>(() => {
+    const nodes: TrainNode[] = [];
+
+    if (mine.length) {
+      const weakness = MODES.find((m) => m.id === 'weakness')!;
+      const top = profile.weaknesses.slice(0, 3).map((w) => w.tag);
+      nodes.push({
+        ...modeNode({ ...weakness, tags: top.length ? top : undefined }),
+        id: 'your-weaknesses',
+        label: 'Drill my weaknesses',
+        detail: profile.weaknesses.length
+          ? `Your top problems right now: ${profile.weaknesses.slice(0, 2).map((w) => MOTIF_META[w.tag].short.toLowerCase()).join(', ')}`
+          : 'Puzzles built from the mistakes in your own games',
+        meta: `${mine.length}`,
+      });
+    }
+
+    for (const g of MODE_GROUPS) {
+      nodes.push({
+        id: g.id,
+        label: g.label,
+        detail: g.detail,
+        meta: `${g.modes.length}`,
+        children: g.modes.flatMap((id) => {
+          const m = MODES.find((x) => x.id === id);
+          return m ? [modeNode(m)] : [];
+        }),
+      });
+    }
+
+    const daily = MODES.find((m) => m.id === 'daily');
+    if (daily) nodes.push({ ...modeNode(daily), label: 'Today’s ten', detail: 'The same ten puzzles for everyone, all day. A solid warm-up.' });
+
+    // Themes, so a specific weakness can be drilled directly.
+    const byTag = new Map<MotifTag, number>();
+    for (const p of pool) for (const t of p.tags) byTag.set(t, (byTag.get(t) ?? 0) + 1);
+    const themes = [...byTag.entries()].filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]);
+    if (themes.length) {
+      nodes.push({
+        id: 'themes',
+        label: 'Work on one theme',
+        detail: 'Pick a single pattern and drill only that',
+        meta: `${themes.length}`,
+        children: themes.map(([tag, n]) => {
+          const sample = sampleFor([tag]);
+          return {
+            id: tag,
+            label: MOTIF_META[tag].label,
+            detail: MOTIF_META[tag].short,
+            meta: `${n}`,
+            fen: sample?.fen,
+            orientation: sample?.solverColor,
+            caption: 'A puzzle on this theme',
+            href: `/puzzles/tag-${tag}`,
+            cta: 'Drill this theme',
+          };
+        }),
+      });
+    }
+    return nodes;
+  }, [mine, pool, profile, sampleFor]);
 
   return (
     <div>
@@ -82,80 +195,22 @@ export function PuzzlesPage() {
         <h1>Puzzles</h1>
         <div className="sub">
           {mine.length
-            ? `${mine.length} puzzles from your own games, plus ${STARTER_PUZZLES.length} to get started.`
-            : `${STARTER_PUZZLES.length} starter puzzles. Import games and your own blunders become puzzles too.`}
+            ? `${mine.length} from your own games, plus ${STARTER_PUZZLES.length} to warm up on.`
+            : `${STARTER_PUZZLES.length} puzzles ready. Import games and your own blunders join them.`}
         </div>
       </div>
 
-      <Card style={{ marginBottom: 16 }}>
-        <div className="hud">
-          <div className="hud-item"><span className="v">{solverRating}</span><span className="k">Puzzle rating</span></div>
-          <div className="hud-item"><span className="v">{totals.solved}/{totals.attempted}</span><span className="k">Solved</span></div>
-          <div className="hud-item"><span className="v">{totals.bestStreak}</span><span className="k">Best run</span></div>
-        </div>
-      </Card>
-
-      {mine.length === 0 && (
-        <div className="banner" style={{ marginBottom: 16 }}>
-          <div>
-            <div className="bold">New here? Start with Practice.</div>
-            <div className="small dim" style={{ marginTop: 2 }}>
-              It is untimed and forgiving, and it uses spaced repetition — patterns you fumble come back
-              sooner than ones you get right. The timed modes are more fun once the patterns are familiar.
-            </div>
+      <TrainBrowser
+        rootLabel="All puzzles"
+        roots={roots}
+        intro={
+          <div className="hud puzzle-hud">
+            <div className="hud-item"><span className="v">{solverRating}</span><span className="k">Rating</span></div>
+            <div className="hud-item"><span className="v">{totals.solved}/{totals.attempted}</span><span className="k">Solved</span></div>
+            <div className="hud-item"><span className="v">{totals.bestStreak}</span><span className="k">Best run</span></div>
           </div>
-        </div>
-      )}
-
-      <div className="cards-grid">
-        {MODES.map((m) => {
-          const disabled = m.ownGamesOnly && mine.length === 0;
-          const recommended = mine.length === 0 && m.id === 'train';
-          return (
-            <Card
-              key={m.id}
-              className="mode-card"
-              style={disabled ? { opacity: 0.55 } : recommended ? { borderColor: 'var(--accent)' } : undefined}
-            >
-              <div className="mode-icon">{m.icon}</div>
-              <div className="row" style={{ marginBottom: 4 }}>
-                <span className="bold">{m.name}</span>
-                {recommended && <Pill color="var(--accent)">start here</Pill>}
-                <div className="spacer" />
-                {m.timeLimit > 0 && <Pill>{m.timeLimit / 60} min</Pill>}
-                {m.lives > 0 && <Pill>{m.lives} {m.lives === 1 ? 'life' : 'lives'}</Pill>}
-              </div>
-              <div className="small dim" style={{ minHeight: 40 }}>{m.blurb}</div>
-              <button
-                className="btn primary sm"
-                style={{ marginTop: 10, width: '100%' }}
-                disabled={disabled}
-                onClick={() => navigate(`/puzzles/${m.id}`)}
-              >
-                {disabled ? 'Import games first' : 'Start'}
-              </button>
-            </Card>
-          );
-        })}
-      </div>
-
-      {sessions.length > 0 && (
-        <Card title="Recent sessions" style={{ marginTop: 18 }} className="pad-0">
-          <table>
-            <thead><tr><th>Mode</th><th style={{ width: 90 }}>Solved</th><th style={{ width: 90 }}>Best run</th><th style={{ width: 110 }}>When</th></tr></thead>
-            <tbody>
-              {sessions.slice(0, 8).map((s, i) => (
-                <tr key={i}>
-                  <td className="small">{s.mode}</td>
-                  <td className="mono small">{s.solved}/{s.attempted}</td>
-                  <td className="mono small">{s.best}</td>
-                  <td className="small dim">{new Date(s.at).toLocaleDateString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
-      )}
+        }
+      />
     </div>
   );
 }
