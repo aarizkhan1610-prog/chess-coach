@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Chess } from 'chess.js';
-import { ALL_OPENINGS, GROUP_LABEL, openingById, openingsByGroup, type Opening } from '../openings';
+import { ALL_OPENINGS, GROUP_LABEL, firstRepertoire, openingById, openingsByGroup, type Opening } from '../openings';
 import { Board } from '../components/Board';
 import { Card, Empty, Meter, Pill, navigate } from '../components/ui';
 import { useGames, useStore } from '../state/store';
@@ -63,6 +63,8 @@ export function OpeningsPage() {
         </Card>
       )}
 
+      {!played.size && !q && <FirstRepertoire />}
+
       {groups.map(({ group, openings }) => {
         const shown = openings.filter(matches);
         if (!shown.length) return null;
@@ -101,6 +103,55 @@ export function OpeningsPage() {
         );
       })}
     </div>
+  );
+}
+
+/**
+ * For someone with no games imported, 27 courses is a wall rather than a menu.
+ * This narrows it to the three decisions a repertoire actually consists of,
+ * with two low-theory options for each.
+ */
+function FirstRepertoire() {
+  const slots = useMemo(() => firstRepertoire(), []);
+  const openingStep = useStore((s) => s.openingStep);
+
+  return (
+    <Card className="repertoire" style={{ marginBottom: 24 }}>
+      <div style={{ marginBottom: 14 }}>
+        <h2 style={{ marginBottom: 4 }}>Build a first repertoire</h2>
+        <div className="small dim">
+          A repertoire is really just three decisions. Pick one from each row and you have a complete
+          set of openings you can play in every game — no memorisation marathon required.
+        </div>
+      </div>
+
+      <div className="rep-rows">
+        {slots.map((slot) => (
+          <div className="rep-row" key={slot.role}>
+            <div className="rep-role">
+              <div className="bold">{slot.role}</div>
+              <div className="tiny faint">{slot.question}</div>
+            </div>
+            <div className="rep-picks">
+              {slot.picks.map(({ opening, why }, i) => (
+                <a className="rep-pick" key={opening.id} href={`#/openings/${opening.id}`}>
+                  <div className="row" style={{ gap: 7, marginBottom: 3 }}>
+                    <span className="bold">{opening.name}</span>
+                    {i === 0 && <Pill color="var(--accent)">easiest</Pill>}
+                    {(openingStep[opening.id] ?? 0) > 0 && <Pill color="var(--good)">started</Pill>}
+                  </div>
+                  <div className="small dim">{why}</div>
+                </a>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="tiny faint" style={{ marginTop: 14 }}>
+        Everything below is the full library — come back to it once you have one of each.
+      </div>
+    </Card>
   );
 }
 

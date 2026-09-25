@@ -6,6 +6,7 @@ import { puzzlesFromGames } from '../coach/puzzles';
 import { STARTER_PUZZLES } from '../coach/starterPuzzles';
 import { Card, Empty, Meter, Pill, Stat, accuracyColor, formatDate, navigate, resultBadge } from '../components/ui';
 import { MOTIF_META } from '../types';
+import { PathStrip, usePaths } from '../components/paths';
 
 export function DashboardPage() {
   const games = useGames();
@@ -20,6 +21,7 @@ export function DashboardPage() {
     [games, settings.includePunishPuzzles],
   );
   const summary = useMemo(() => coachSummary(profile), [profile]);
+  const paths = usePaths();
 
   if (!games.length) {
     return (
@@ -58,6 +60,15 @@ export function DashboardPage() {
       </div>
 
       <div className="grid" style={{ gap: 16 }}>
+        <div>
+          <div className="row" style={{ marginBottom: 9 }}>
+            <h2>What would you like to work on?</h2>
+            <div className="spacer" />
+            <a className="btn sm ghost" href="#/start">See all paths →</a>
+          </div>
+          <PathStrip paths={paths} />
+        </div>
+
         <Card>
           <div className="stats-row">
             <Stat value={`${profile.accuracy}%`} label="Accuracy" tone={accuracyColor(profile.accuracy)} />

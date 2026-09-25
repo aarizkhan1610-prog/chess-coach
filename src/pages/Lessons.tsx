@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Chess } from 'chess.js';
 import { useGames, useStore } from '../state/store';
 import { buildProfile } from '../coach/weaknesses';
-import { ALL_LESSONS, buildPlan, examplesFor, lessonFor, remainingLessons, type Lesson, type LessonStep } from '../coach/lessons';
+import { ALL_LESSONS, buildPlan, coreTrack, examplesFor, lessonFor, remainingLessons, type Lesson, type LessonStep } from '../coach/lessons';
 import { Board } from '../components/Board';
 import { Card, Empty, Meter, Pill, navigate, formatDate } from '../components/ui';
 import { MOTIF_META, type MotifTag } from '../types';
@@ -13,20 +13,26 @@ export function LessonsPage() {
   const plan = useMemo(() => buildPlan(profile, 6), [profile]);
   const rest = useMemo(() => remainingLessons(plan), [plan]);
   const done = useStore((s) => s.lessonDone);
+  const track = useMemo(() => coreTrack(done), [done]);
+
+  const personalised = plan.length > 0;
+  const trackDone = track.filter((t) => t.done).length;
+  // Where to pick up: the first unfinished step.
+  const nextStep = track.find((t) => !t.done) ?? track[0];
 
   return (
     <div>
       <div className="page-head">
         <h1>Lessons</h1>
         <div className="sub">
-          {plan.length
+          {personalised
             ? 'Ordered by what your games say is costing you the most.'
-            : 'Import games and this list reorders itself around your actual weaknesses.'}
+            : 'Start at the top and work down — the order is the point. Once you import games, this list reorders itself around your actual weaknesses.'}
         </div>
       </div>
 
-      {plan.length > 0 && (
-        <Card title="Your plan" className="pad-0" >
+      {personalised ? (
+        <Card title="Your plan" className="pad-0">
           <div style={{ padding: 16 }}>
             {plan.map((item, i) => (
               <div className="weakness-row" key={item.lesson.tag}>
@@ -45,12 +51,64 @@ export function LessonsPage() {
             ))}
           </div>
         </Card>
+      ) : (
+        <>
+          <Card className="track-head">
+            <div className="row wrap" style={{ gap: 14 }}>
+              <div style={{ flex: 1, minWidth: 220 }}>
+                <h2 style={{ marginBottom: 4 }}>The core track</h2>
+                <div className="small dim">
+                  Eleven lessons covering the habits that decide most games. About two hours in total,
+                  and you can stop after any one of them.
+                </div>
+              </div>
+              <div className="track-progress">
+                <div className="row" style={{ gap: 8 }}>
+                  <span className="bold mono">{trackDone}/{track.length}</span>
+                  <span className="tiny faint">done</span>
+                </div>
+                <Meter value={trackDone} max={track.length} />
+              </div>
+              {nextStep && (
+                <a className="btn primary" href={`#/lessons/${nextStep.lesson.tag}`}>
+                  {trackDone === 0 ? 'Start the track' : trackDone === track.length ? 'Review the track' : 'Continue'} →
+                </a>
+              )}
+            </div>
+          </Card>
+
+          <ol className="track">
+            {track.map((step, i) => (
+              <li key={step.lesson.tag} className={`track-step ${step.done ? 'done' : ''}`}>
+                <a className="track-num" href={`#/lessons/${step.lesson.tag}`} aria-hidden>
+                  {step.done ? '\u2713' : i + 1}
+                </a>
+                <div className="track-body">
+                  <div className="row wrap" style={{ gap: 8 }}>
+                    <a className="bold track-title" href={`#/lessons/${step.lesson.tag}`}>{step.lesson.title}</a>
+                    {step.done && <Pill color="var(--good)">done</Pill>}
+                    <span className="tiny faint">{step.lesson.estMinutes} min</span>
+                  </div>
+                  <div className="small dim">{step.why}</div>
+                </div>
+                <a className="btn sm" href={`#/lessons/${step.lesson.tag}`}>
+                  {step.done ? 'Revisit' : 'Open'}
+                </a>
+              </li>
+            ))}
+          </ol>
+        </>
       )}
 
-      <div style={{ marginTop: 18 }}>
-        <h2 style={{ marginBottom: 10 }}>{plan.length ? 'Everything else' : 'All lessons'}</h2>
+      <div style={{ marginTop: 22 }}>
+        <h2 style={{ marginBottom: 4 }}>{personalised ? 'Everything else' : 'The rest of the library'}</h2>
+        <div className="small dim" style={{ marginBottom: 12 }}>
+          {personalised
+            ? 'Every lesson, whether or not it has shown up in your games.'
+            : 'More specific patterns. Worth coming back to once the core track is behind you.'}
+        </div>
         <div className="cards-grid">
-          {(plan.length ? rest : ALL_LESSONS).map((l) => (
+          {(personalised ? rest : ALL_LESSONS.filter((l) => !track.some((t) => t.lesson.tag === l.tag))).map((l) => (
             <a key={l.tag} href={`#/lessons/${l.tag}`} style={{ textDecoration: 'none', color: 'inherit' }}>
               <Card className="mode-card">
                 <div className="row" style={{ marginBottom: 6 }}>

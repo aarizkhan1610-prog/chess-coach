@@ -95,18 +95,32 @@ export function PuzzlesPage() {
         </div>
       </Card>
 
+      {mine.length === 0 && (
+        <div className="banner" style={{ marginBottom: 16 }}>
+          <div>
+            <div className="bold">New here? Start with Practice.</div>
+            <div className="small dim" style={{ marginTop: 2 }}>
+              It is untimed and forgiving, and it uses spaced repetition — patterns you fumble come back
+              sooner than ones you get right. The timed modes are more fun once the patterns are familiar.
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="cards-grid">
         {MODES.map((m) => {
           const disabled = m.ownGamesOnly && mine.length === 0;
+          const recommended = mine.length === 0 && m.id === 'train';
           return (
             <Card
               key={m.id}
               className="mode-card"
-              style={disabled ? { opacity: 0.55 } : undefined}
+              style={disabled ? { opacity: 0.55 } : recommended ? { borderColor: 'var(--accent)' } : undefined}
             >
               <div className="mode-icon">{m.icon}</div>
               <div className="row" style={{ marginBottom: 4 }}>
                 <span className="bold">{m.name}</span>
+                {recommended && <Pill color="var(--accent)">start here</Pill>}
                 <div className="spacer" />
                 {m.timeLimit > 0 && <Pill>{m.timeLimit / 60} min</Pill>}
                 {m.lives > 0 && <Pill>{m.lives} {m.lives === 1 ? 'life' : 'lives'}</Pill>}

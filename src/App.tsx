@@ -10,6 +10,7 @@ import { LessonsPage, LessonPage } from './pages/Lessons';
 import { PuzzlesPage, PuzzleSessionPage } from './pages/Puzzles';
 import { OpeningsPage, OpeningPage } from './pages/Openings';
 import { SettingsPage } from './pages/Settings';
+import { LandingPage } from './pages/Landing';
 import { buildProfile } from './coach/weaknesses';
 import type { MotifTag } from './types';
 
@@ -98,10 +99,15 @@ export default function App() {
 
 function Routes({ parts }: { parts: string[] }) {
   const [section, arg] = parts;
+  const hasGames = useStore((s) => s.gameOrder.length > 0);
 
   switch (section) {
     case undefined:
-      return <DashboardPage />;
+      // New users get the pathway chooser; the dashboard only means something
+      // once there are games to summarise.
+      return hasGames ? <DashboardPage /> : <LandingPage hasGames={false} />;
+    case 'start':
+      return <LandingPage hasGames={hasGames} />;
     case 'import':
       return <ImportPage />;
     case 'games':

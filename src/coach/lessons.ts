@@ -14,6 +14,41 @@ export function lessonFor(tag: MotifTag): Lesson | undefined {
   return BY_TAG.get(tag);
 }
 
+/**
+ * A teaching order for someone with no games imported yet.
+ *
+ * The personalised plan is always better when it exists, because it is built
+ * from what you actually get wrong. This is the fallback: the same lessons in
+ * the order that tends to pay off fastest, cheapest habits first.
+ */
+export const CORE_TRACK: { tag: MotifTag; why: string }[] = [
+  { tag: 'hanging-piece', why: 'More games are lost to an undefended piece than to every opening mistake combined.' },
+  { tag: 'moved-into-attack', why: 'The other half of the same habit: check the square before you commit the piece.' },
+  { tag: 'ignored-threat', why: 'Now build the habit of asking what your opponent just did, every move.' },
+  { tag: 'missed-material', why: 'The cheapest source of free points: look at every capture before choosing.' },
+  { tag: 'back-rank', why: 'One pawn move prevents an entire category of loss. Worth ten minutes.' },
+  { tag: 'allowed-fork', why: 'The most common way material changes hands below master level.' },
+  { tag: 'king-safety', why: 'Every other advantage depends on your king surviving.' },
+  { tag: 'development', why: 'Almost every opening disaster traces back to attacking with two pieces.' },
+  { tag: 'converting-advantage', why: 'Winning positions are a skill of their own — and the most frustrating to lose.' },
+  { tag: 'bad-trade', why: 'An even trade of material can still be a losing trade.' },
+  { tag: 'endgame-technique', why: 'The most learnable part of chess: concrete positions, knowledge that never expires.' },
+];
+
+export interface TrackStep {
+  lesson: Lesson;
+  why: string;
+  done: boolean;
+}
+
+/** The core track, resolved to lessons and annotated with progress. */
+export function coreTrack(done: Record<string, boolean>): TrackStep[] {
+  return CORE_TRACK.flatMap(({ tag, why }) => {
+    const lesson = BY_TAG.get(tag);
+    return lesson ? [{ lesson, why, done: Boolean(done[tag]) }] : [];
+  });
+}
+
 export interface PlanItem {
   lesson: Lesson;
   /** Why this lesson is in the plan right now. */

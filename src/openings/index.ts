@@ -110,3 +110,58 @@ export function coursesMatching(sans: string[]): Opening[] {
     return lines.some((line) => sans.every((s, i) => line[i] === s));
   });
 }
+
+/* ------------------------------------------------------------------ *
+ * First repertoire
+ * ------------------------------------------------------------------ */
+
+export interface StarterSlot {
+  /** The gap this slot fills in a repertoire. */
+  role: string;
+  question: string;
+  picks: { id: string; why: string }[];
+}
+
+/**
+ * A complete repertoire needs three decisions: what you open with, and an
+ * answer to each of the two main first moves. These are the low-theory
+ * choices for each — openings you can play on understanding rather than
+ * memorisation, which is what a first repertoire should be.
+ */
+export const FIRST_REPERTOIRE: StarterSlot[] = [
+  {
+    role: 'As White',
+    question: 'What do you open with?',
+    picks: [
+      { id: 'london', why: 'One setup you can play against almost anything. The least memorisation of any opening here.' },
+      { id: 'italian', why: 'The classical choice: natural moves, real plans, and it teaches you how to attack.' },
+    ],
+  },
+  {
+    role: 'Against 1.e4',
+    question: 'What do you answer 1.e4 with?',
+    picks: [
+      { id: 'scandinavian', why: 'The fastest Black repertoire to learn — you trade off the centre on move two and no piece ends up stuck.' },
+      { id: 'caro-kann', why: 'Rock solid, with none of the bad-bishop problems of the French. Harder to crack, slightly more to learn.' },
+    ],
+  },
+  {
+    role: 'Against 1.d4',
+    question: 'What do you answer 1.d4 with?',
+    picks: [
+      { id: 'qgd', why: 'The most respectable answer there is. Hard to go wrong, and the plans repeat every game.' },
+      { id: 'slav', why: 'The same solidity, but your light-squared bishop gets out first. A little sharper.' },
+    ],
+  },
+];
+
+export function firstRepertoire(): { role: string; question: string; picks: { opening: Opening; why: string }[] }[] {
+  return FIRST_REPERTOIRE.map((slot) => ({
+    role: slot.role,
+    question: slot.question,
+    picks: slot.picks.flatMap((pick) => {
+      const opening = openingById(pick.id);
+      return opening ? [{ opening, why: pick.why }] : [];
+    }),
+  }));
+}
