@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { useGames } from '../state/store';
-import { buildProfile } from '../coach/weaknesses';
+import { useGames, useStore } from '../state/store';
+import { buildProfile, coachSummary } from '../coach/weaknesses';
 import { examplesFor } from '../coach/lessons';
 import { Board } from '../components/Board';
 import { Card, Empty, Meter, Pill, Stat, accuracyColor, formatDate, navigate } from '../components/ui';
@@ -12,13 +12,16 @@ const VERDICTS: MoveVerdict[] = ['brilliant', 'great', 'best', 'good', 'book', '
 export function ProfilePage() {
   const games = useGames();
   const profile = useMemo(() => buildProfile(games), [games]);
+  const summary = useMemo(() => coachSummary(profile), [profile]);
+  const solverRating = useStore((s) => s.solverRating);
+  const totals = useStore((s) => s.totals);
   const [open, setOpen] = useState<MotifTag | null>(null);
 
   if (!games.length) {
     return (
       <div>
-        <div className="page-head"><h1>Your profile</h1></div>
-        <Empty title="Nothing to analyse yet" action={<button className="btn primary" onClick={() => navigate('/import')}>Import games</button>}>
+        <div className="page-head"><h1>Your weaknesses</h1></div>
+        <Empty title="Nothing to analyse yet" action={<button className="btn primary" onClick={() => navigate('/import')}>Import your games</button>}>
           Your weaknesses are worked out from your own moves, so this page fills in once you import a game or two.
           Five or more gives a much clearer picture.
         </Empty>
@@ -32,7 +35,7 @@ export function ProfilePage() {
   return (
     <div>
       <div className="page-head">
-        <h1>Your profile</h1>
+        <h1>Your weaknesses</h1>
         <div className="sub">
           Built from {profile.moves} of your own moves across {profile.games} game{profile.games === 1 ? '' : 's'}.
           {profile.games < 5 && ' Import a few more for a more reliable picture.'}
@@ -43,6 +46,34 @@ export function ProfilePage() {
         <Card>
           <div className="stats-row">
             <Stat value={`${profile.accuracy}%`} label="Overall accuracy" tone={accuracyColor(profile.accuracy)} />
+            <Stat
+              value={(profile.verdicts.blunder / Math.max(1, profile.games)).toFixed(1)}
+              label="Blunders / game"
+              tone={profile.verdicts.blunder / Math.max(1, profile.games) > 1 ? 'var(--v-blunder)' : undefined}
+            />
+            <Stat value={solverRating} label="Puzzle rating" />
+            <Stat
+              value={totals.attempted ? `${Math.round((totals.solved / totals.attempted) * 100)}%` : '—'}
+              label="Puzzles solved"
+            />
+            <Stat
+              value={profile.momentum === null ? '—' : `${profile.momentum > 0 ? '+' : ''}${profile.momentum}`}
+              label="Recent trend"
+              tone={profile.momentum === null ? undefined : profile.momentum >= 0 ? 'var(--good)' : 'var(--bad)'}
+            />
+          </div>
+        </Card>
+
+        {summary.length > 0 && (
+          <Card title="What your games say">
+            <ul style={{ margin: 0 }}>
+              {summary.map((line, i) => <li key={i}>{line}</li>)}
+            </ul>
+          </Card>
+        )}
+
+        <Card title="Accuracy by phase">
+          <div className="stats-row">
             {(['opening', 'middlegame', 'endgame'] as const).map((p) => (
               <Stat
                 key={p}

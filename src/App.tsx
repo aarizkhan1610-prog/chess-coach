@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useGames, useHydrated, useStore } from './state/store';
 import { useRoute, Spinner } from './components/ui';
-import { DashboardPage } from './pages/Dashboard';
 import { ImportPage } from './pages/Import';
 import { GamesPage } from './pages/Games';
 import { GameReviewPage } from './pages/GameReview';
@@ -15,8 +14,7 @@ import { buildProfile } from './coach/weaknesses';
 import type { MotifTag } from './types';
 
 const NAV = [
-  { path: '/', icon: '⌂', label: 'Dashboard' },
-  { path: '/import', icon: '↓', label: 'Import' },
+  { path: '/', icon: '⌂', label: 'Home' },
   { path: '/games', icon: '♜', label: 'Games' },
   { path: '/profile', icon: '◔', label: 'Weaknesses' },
 ];
@@ -142,15 +140,11 @@ export default function App() {
 
 function Routes({ parts }: { parts: string[] }) {
   const [section, arg] = parts;
-  const hasGames = useStore((s) => s.gameOrder.length > 0);
 
   switch (section) {
     case undefined:
-      // New users get the pathway chooser; the dashboard only means something
-      // once there are games to summarise.
-      return hasGames ? <DashboardPage /> : <LandingPage hasGames={false} />;
     case 'start':
-      return <LandingPage hasGames={hasGames} />;
+      return <LandingPage />;
     case 'import':
       return <ImportPage />;
     case 'games':
@@ -168,6 +162,6 @@ function Routes({ parts }: { parts: string[] }) {
     case 'settings':
       return <SettingsPage />;
     default:
-      return <DashboardPage />;
+      return <LandingPage />;
   }
 }

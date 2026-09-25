@@ -1,9 +1,12 @@
+import { useMemo } from 'react';
 import { useStore, useGames } from '../state/store';
+import { buildProfile } from '../coach/weaknesses';
 import { Card, Empty, Pill, accuracyColor, formatDate, navigate, resultBadge } from '../components/ui';
 import { VERDICT_META } from '../chess/evaluation';
 
 export function GamesPage() {
   const games = useGames();
+  const profile = useMemo(() => buildProfile(games), [games]);
   const removeGame = useStore((s) => s.removeGame);
   const clearGames = useStore((s) => s.clearGames);
 
@@ -13,7 +16,7 @@ export function GamesPage() {
         <div className="page-head"><h1>Games</h1></div>
         <Empty
           title="No games yet"
-          action={<button className="btn primary" onClick={() => navigate('/import')}>Import a game</button>}
+          action={<button className="btn primary" onClick={() => navigate('/import')}>Import your games</button>}
         >
           Import a PGN and every move gets an evaluation, a verdict, and — where it went wrong — a reason.
         </Empty>
@@ -27,7 +30,10 @@ export function GamesPage() {
         <div className="row">
           <div>
             <h1>Games</h1>
-            <div className="sub">{games.length} analysed</div>
+            <div className="sub">
+              {games.length} analysed · {profile.accuracy}% average accuracy ·
+              {' '}{profile.verdicts.blunder} blunder{profile.verdicts.blunder === 1 ? '' : 's'} in total
+            </div>
           </div>
           <div className="spacer" />
           <button className="btn sm" onClick={() => navigate('/import')}>Import more</button>
