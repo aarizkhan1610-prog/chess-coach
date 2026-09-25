@@ -631,3 +631,44 @@ tr.clickable:hover td { background: var(--surface-2); }
   gap: 22px; padding: 13px 16px; margin-bottom: 14px;
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
 }
+
+/* ---------------------------------------------------------------- *
+ * Collapsible navigation
+ * ---------------------------------------------------------------- */
+.nav-toggle {
+  margin-left: auto; flex: none;
+  width: 24px; height: 24px; border-radius: 6px;
+  display: grid; place-items: center;
+  background: none; border: 1px solid transparent; color: var(--text-faint);
+  font: inherit; font-size: 0.95rem; line-height: 1; cursor: pointer;
+}
+.nav-toggle:hover { background: var(--surface-2); color: var(--text); border-color: var(--border); }
+
+/*
+ * Collapse by removing the panel from the layout outright. A negative margin
+ * with a transition was tried first and is not worth it here: the animated
+ * margin makes the element's computed geometry ambiguous mid-flight, and the
+ * panel is a navigation rail rather than something that benefits from sliding.
+ */
+.app.nav-collapsed .sidebar { display: none; }
+.app.nav-collapsed .main { padding-left: 64px; }
+
+.nav-restore {
+  position: fixed; top: 16px; left: 14px; z-index: 40;
+  width: 34px; height: 34px; border-radius: 9px;
+  display: grid; place-items: center;
+  background: var(--surface); border: 1px solid var(--border-strong);
+  color: var(--text-dim); font-size: 1rem; line-height: 1; cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  animation: fade 0.16s ease-out;
+}
+.nav-restore:hover { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.nav-restore:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* On narrow screens the nav is already a horizontal bar; leave it alone. */
+@media (max-width: 720px) {
+  .app.nav-collapsed .sidebar { display: flex; }
+  .app.nav-collapsed .main { padding-left: 16px; }
+  .nav-toggle, .nav-restore { display: none; }
+}

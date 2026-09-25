@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useGames, useHydrated, useStore } from './state/store';
 import { useRoute, Spinner } from './components/ui';
 import { DashboardPage } from './pages/Dashboard';
@@ -32,20 +32,49 @@ export default function App() {
   const hydrated = useHydrated();
   const games = useGames();
 
+  const setSettings = useStore((st) => st.setSettings);
+  const collapsed = settings.sidebarCollapsed;
+  const toggleNav = useCallback(
+    () => setSettings({ sidebarCollapsed: !collapsed }),
+    [setSettings, collapsed],
+  );
+
   useEffect(() => {
     document.documentElement.dataset.theme = settings.theme;
   }, [settings.theme]);
+
+  // Cmd/Ctrl+B, as in most editors. Ignored while typing.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        toggleNav();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [toggleNav]);
 
   const weaknessCount = useMemo(() => buildProfile(games).weaknesses.length, [games]);
   const route = `/${parts.join('/')}`;
   const section = parts[0] ?? '';
 
   return (
-    <div className="app">
+    <div className={`app ${collapsed ? 'nav-collapsed' : ''}`}>
       <nav className="sidebar">
         <div className="brand">
           <span className="brand-mark">{'♚'}</span>
           <span>Chess Coach</span>
+          <button
+            className="nav-toggle"
+            onClick={toggleNav}
+            title="Hide the menu (⌘B)"
+            aria-label="Hide the menu"
+          >
+            {'«'}
+          </button>
         </div>
 
         {NAV.map((item) => (
@@ -83,6 +112,17 @@ export default function App() {
           </div>
         </div>
       </nav>
+
+      {collapsed && (
+        <button
+          className="nav-restore"
+          onClick={toggleNav}
+          title="Show the menu (\u2318B)"
+          aria-label="Show the menu"
+        >
+          {'\u2630'}
+        </button>
+      )}
 
       <main className="main">
         {!hydrated ? (

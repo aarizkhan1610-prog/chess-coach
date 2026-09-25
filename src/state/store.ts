@@ -23,6 +23,8 @@ export interface Settings {
   autoOrient: boolean;
   /** Include puzzles built from the opponent's blunders. */
   includePunishPuzzles: boolean;
+  /** Hide the left navigation to give the board more room. */
+  sidebarCollapsed: boolean;
 }
 
 interface AppState {
@@ -61,6 +63,7 @@ const DEFAULT_SETTINGS: Settings = {
   theme: 'dark',
   autoOrient: true,
   includePunishPuzzles: true,
+  sidebarCollapsed: false,
 };
 
 export const useStore = create<AppState>()(
