@@ -208,11 +208,11 @@ export function OpeningPage({ id }: { id: string }) {
         </div>
       </div>
 
-      <div className="row wrap" style={{ gap: 6, marginBottom: 16 }}>
+      <div className="seg" role="group" aria-label="Section" style={{ marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
         {(['learn', 'ideas', 'branches', 'traps', 'quiz'] as Tab[]).map((t) => {
           if (t === 'traps' && !opening.traps.length) return null;
           return (
-            <button key={t} className={`btn sm ${tab === t ? 'primary' : 'ghost'}`} onClick={() => setTab(t)}>
+            <button key={t} className={`seg-item ${tab === t ? 'on' : ''}`} aria-pressed={tab === t} onClick={() => setTab(t)}>
               {t === 'learn' ? 'Step by step' : t === 'quiz' ? 'Test yourself' : t[0].toUpperCase() + t.slice(1)}
             </button>
           );

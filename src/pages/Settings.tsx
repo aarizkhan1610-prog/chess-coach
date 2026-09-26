@@ -76,9 +76,10 @@ export function SettingsPage() {
           </Card>
 
           <Card title="Appearance">
-            <div className="row">
+            <div className="seg" role="group" aria-label="Theme">
               {(['dark', 'light'] as const).map((t) => (
-                <button key={t} className={`btn ${settings.theme === t ? 'primary' : ''}`} onClick={() => setSettings({ theme: t })}>
+                <button key={t} className={`seg-item ${settings.theme === t ? 'on' : ''}`}
+                  aria-pressed={settings.theme === t} onClick={() => setSettings({ theme: t })}>
                   {t === 'dark' ? 'Dark' : 'Light'}
                 </button>
               ))}

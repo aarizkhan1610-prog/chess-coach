@@ -1,15 +1,28 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useMemo } from 'react';
 import { useGames, useHydrated, useStore } from './state/store';
 import { useRoute, Spinner } from './components/ui';
-import { ImportPage } from './pages/Import';
-import { GamesPage } from './pages/Games';
-import { GameReviewPage } from './pages/GameReview';
-import { ProfilePage } from './pages/Profile';
-import { LessonsPage, LessonPage } from './pages/Lessons';
-import { PuzzlesPage, PuzzleSessionPage } from './pages/Puzzles';
-import { OpeningsPage, OpeningPage } from './pages/Openings';
-import { SettingsPage } from './pages/Settings';
 import { LandingPage } from './pages/Landing';
+
+/*
+ * Routes load on demand.
+ *
+ * Everything shipped as one 518KB chunk, so opening the home page also
+ * downloaded 27 opening courses, 26 lessons and the puzzle pack — none of
+ * which that page uses. The landing route is imported eagerly because it is
+ * what most visits start on; the rest arrive when asked for.
+ */
+const ImportPage = lazy(() => import('./pages/Import').then((m) => ({ default: m.ImportPage })));
+const GamesPage = lazy(() => import('./pages/Games').then((m) => ({ default: m.GamesPage })));
+const GameReviewPage = lazy(() => import('./pages/GameReview').then((m) => ({ default: m.GameReviewPage })));
+const ProfilePage = lazy(() => import('./pages/Profile').then((m) => ({ default: m.ProfilePage })));
+const SettingsPage = lazy(() => import('./pages/Settings').then((m) => ({ default: m.SettingsPage })));
+const LessonsPage = lazy(() => import('./pages/Lessons').then((m) => ({ default: m.LessonsPage })));
+const LessonPage = lazy(() => import('./pages/Lessons').then((m) => ({ default: m.LessonPage })));
+const PuzzlesPage = lazy(() => import('./pages/Puzzles').then((m) => ({ default: m.PuzzlesPage })));
+const PuzzleSessionPage = lazy(() => import('./pages/Puzzles').then((m) => ({ default: m.PuzzleSessionPage })));
+const OpeningsPage = lazy(() => import('./pages/Openings').then((m) => ({ default: m.OpeningsPage })));
+const OpeningPage = lazy(() => import('./pages/Openings').then((m) => ({ default: m.OpeningPage })));
+
 import { buildProfile } from './coach/weaknesses';
 import type { MotifTag } from './types';
 
@@ -131,7 +144,15 @@ export default function App() {
             <Spinner /> <span className="dim">Loading your data…</span>
           </div>
         ) : (
-          <Routes parts={parts} />
+          <Suspense
+            fallback={
+              <div className="row" style={{ padding: 'var(--space-6)', justifyContent: 'center' }}>
+                <Spinner />
+              </div>
+            }
+          >
+            <Routes parts={parts} />
+          </Suspense>
         )}
       </main>
     </div>

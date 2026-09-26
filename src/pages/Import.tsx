@@ -190,20 +190,21 @@ function StepGames(p: {
   return (
     <div className="grid" style={{ gap: 16 }}>
       <Card title="Where are your games?">
-        <div className="row" style={{ gap: 6, marginBottom: 14 }}>
-          <button className={`btn sm ${p.source === 'account' ? 'primary' : ''}`} onClick={() => p.setSource('account')}>
+        <div className="seg" role="group" aria-label="Where the games come from" style={{ marginBottom: 'var(--space-4)' }}>
+          <button className={`seg-item ${p.source === 'account' ? 'on' : ''}`} aria-pressed={p.source === 'account'} onClick={() => p.setSource('account')}>
             From my account
           </button>
-          <button className={`btn sm ${p.source === 'paste' ? 'primary' : ''}`} onClick={() => p.setSource('paste')}>
+          <button className={`seg-item ${p.source === 'paste' ? 'on' : ''}`} aria-pressed={p.source === 'paste'} onClick={() => p.setSource('paste')}>
             Paste a PGN
           </button>
         </div>
 
         {p.source === 'account' ? (
           <>
-            <div className="row" style={{ gap: 6, marginBottom: 10 }}>
+            <div className="seg" role="group" aria-label="Service" style={{ marginBottom: 'var(--space-3)' }}>
               {PROVIDERS.map((x) => (
-                <button key={x.id} className={`btn sm ${p.provider === x.id ? 'primary' : ''}`} onClick={() => p.setProvider(x.id)}>
+                <button key={x.id} className={`seg-item ${p.provider === x.id ? 'on' : ''}`}
+                  aria-pressed={p.provider === x.id} onClick={() => p.setProvider(x.id)}>
                   {x.name}
                 </button>
               ))}
@@ -286,9 +287,9 @@ function StepGames(p: {
                       {opening?.name ?? 'Unrecognised opening'} · {formatDate(g.meta.date)} · {g.moves.length} plies
                     </div>
                   </div>
-                  <div className="row" style={{ gap: 4 }}>
+                  <div className="seg" role="group" aria-label="Which side you played">
                     {(['w', 'b'] as Color[]).map((c) => (
-                      <button key={c} className={`btn sm ${hero === c ? 'primary' : 'ghost'}`}
+                      <button key={c} className={`seg-item ${hero === c ? 'on' : ''}`} aria-pressed={hero === c}
                         onClick={() => p.setHeroes((h) => ({ ...h, [g.id]: c }))}>
                         {c === 'w' ? 'White' : 'Black'}
                       </button>

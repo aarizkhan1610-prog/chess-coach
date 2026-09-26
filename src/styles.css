@@ -65,6 +65,15 @@
   /* Padding for anything that reads as "a thing you can choose". */
   --option-pad: var(--space-4);
 
+  /*
+   * Comfortable line length, ~70 characters.
+   *
+   * Not 70ch: the ch unit is the width of "0", which in this font is 0.62em
+   * against an average lowercase character of 0.49em. 72ch measured out at 93
+   * actual characters. 58ch lands where it was meant to.
+   */
+  --measure: 58ch;
+
   --radius: 10px;
   --radius-sm: 6px;
   --shadow: 0 2px 8px rgba(0, 0, 0, 0.32);
@@ -98,16 +107,38 @@ body {
   color: var(--text);
   font-family: var(--sans);
   font-size: 15px;
-  line-height: 1.55;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3, h4 { margin: 0; line-height: 1.25; font-weight: 650; letter-spacing: -0.01em; }
-h1 { font-size: 1.5rem; }
-h2 { font-size: 1.15rem; }
-h3 { font-size: 1rem; }
-p { margin: 0 0 0.7em; }
+/*
+ * Headings previously ran 24 / 18.4 / 16px against 15px body text, so an h3
+ * was within a pixel of the paragraph beneath it and ranked nothing. Sizes are
+ * now spaced enough to establish order at a glance, with weight and colour
+ * carrying the last step rather than size alone.
+ */
+h1, h2, h3, h4 { margin: 0; line-height: 1.25; letter-spacing: -0.015em; color: var(--text); }
+h1 { font-size: 1.7rem; font-weight: 700; }
+h2 { font-size: 1.25rem; font-weight: 680; }
+h3 { font-size: 1.02rem; font-weight: 700; }
+h4 { font-size: 0.95rem; font-weight: 680; }
+/*
+ * Cap the measure. Body copy ran to 141 characters per line on a wide screen,
+ * roughly double the comfortable range, which makes the eye lose its place on
+ * the return sweep. max-width only ever narrows, so nothing else moves.
+ */
+p { margin: 0 0 0.7em; max-width: var(--measure); }
 p:last-child { margin-bottom: 0; }
+/*
+ * Prose wherever it appears, not just in <p>. The long explanatory lines were
+ * in .sub, .small and list items. Data strips (.tiny) are left alone — they
+ * are scanned rather than read, and narrowing them only adds lines.
+ */
+.main .sub,
+.main .small,
+.main li,
+.feature-body,
+.landing-lede { max-width: var(--measure); }
 a { color: var(--accent); }
 ul, ol { margin: 0 0 0.7em; padding-left: 1.25em; }
 li { margin-bottom: 0.3em; }
@@ -162,9 +193,29 @@ li { margin-bottom: 0.3em; }
 
 .main { flex: 1; min-width: 0; padding: var(--space-5) var(--space-5) var(--space-6); max-width: 1280px; }
 
-.page-head { margin-bottom: var(--space-5); }
+.page-head { margin-bottom: var(--space-6); }
+.page-head h1 { margin-bottom: var(--space-1); }
 .page-head h1 { margin-bottom: var(--space-1); }
 .page-head .sub { color: var(--text-dim); font-size: 0.93rem; }
+
+/* ---------------------------------------------------------------- *
+ * Segmented control
+ *
+ * Selection used to borrow the primary button style, which put up to four
+ * "primary" buttons on the import screen and left the actual next step with
+ * no more weight than a toggle. Primary now means the action to take; this
+ * means the option currently chosen.
+ * ---------------------------------------------------------------- */
+.seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: var(--radius-sm);
+  background: var(--surface-2); border: 1px solid var(--border); }
+.seg-item {
+  font: inherit; font-size: 0.86rem; font-weight: 600;
+  padding: var(--space-2) var(--space-3); border-radius: 5px;
+  background: none; border: none; color: var(--text-dim); cursor: pointer; white-space: nowrap;
+}
+.seg-item:hover { color: var(--text); }
+.seg-item.on { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+.seg-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -1px; }
 
 /* ---------------------------------------------------------------- *
  * Choosable options
@@ -845,3 +896,22 @@ tr.clickable:hover td { background: var(--surface-2); }
 
 /* Move cells are buttons now; keep them looking like table cells. */
 .move-cell { width: 100%; background: none; }
+
+/* ---------------------------------------------------------------- *
+ * Touch
+ *
+ * Keyed to the pointer rather than the viewport, so a touchscreen gets
+ * comfortable targets at any width and a mouse is not padded out
+ * unnecessarily. Measured at 375px: 6-13 controls per screen were under the
+ * 44px minimum, the navigation among them.
+ * ---------------------------------------------------------------- */
+@media (pointer: coarse) {
+  .btn, .nav-item, .seg-item, .panel-tab, .crumb { min-height: 44px; }
+  /* A small button is still a finger-sized target. */
+  .btn.sm { min-height: 44px; }
+  .train-row, .path-card, .strip-card, .rep-pick, .depth-card { min-height: 56px; }
+  /* The move list is a dense grid; 38px keeps a whole game reachable. */
+  .move-cell { min-height: 38px; }
+  .step-dot, .wizard-dot { width: 40px; height: 40px; }
+  input[type='text'], input[type='number'], select, textarea { min-height: 44px; font-size: 16px; }
+}
