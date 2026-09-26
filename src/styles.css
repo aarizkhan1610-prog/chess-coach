@@ -915,3 +915,50 @@ tr.clickable:hover td { background: var(--surface-2); }
   .step-dot, .wizard-dot { width: 40px; height: 40px; }
   input[type='text'], input[type='number'], select, textarea { min-height: 44px; font-size: 16px; }
 }
+
+/* ---- The coached board ------------------------------------------------ *
+ * A card whose left edge carries the verdict, so the judgement is legible
+ * before any of the words are read.
+ * --------------------------------------------------------------------- */
+
+.coach-card {
+  border: 1px solid var(--border); border-left: 3px solid var(--border);
+  border-radius: var(--radius); background: var(--bg-elev);
+  padding: var(--space-4); margin-bottom: var(--space-3);
+}
+.coach-card.tone-great { border-left-color: var(--v-brilliant); }
+.coach-card.tone-good  { border-left-color: var(--good); }
+.coach-card.tone-ok    { border-left-color: var(--border); }
+.coach-card.tone-warn  { border-left-color: var(--v-inaccuracy); }
+.coach-card.tone-bad   { border-left-color: var(--bad); }
+
+.coach-idle .coach-prompt { font-size: 1.02rem; font-weight: 650; margin-bottom: var(--space-2); }
+.coach-idle p { margin: 0; }
+
+.coach-verdict { display: flex; align-items: baseline; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-2); }
+.coach-tone { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.tone-great .coach-tone { color: var(--v-brilliant); }
+.tone-good .coach-tone  { color: var(--good); }
+.tone-ok .coach-tone    { color: var(--text-dim); }
+.tone-warn .coach-tone  { color: var(--v-inaccuracy); }
+.tone-bad .coach-tone   { color: var(--bad); }
+.coach-move { font-size: 0.95rem; color: var(--text); }
+.coach-cost { font-size: 0.8rem; color: var(--bad); font-weight: 600; }
+
+.coach-headline { margin: 0 0 var(--space-2); font-size: 1.02rem; line-height: 1.5; max-width: var(--measure); }
+.coach-extra { margin: 0 0 var(--space-2); max-width: var(--measure); }
+
+/* The general rule, kept visually apart because it is taught once. */
+.coach-rule {
+  display: flex; flex-direction: column; gap: 4px;
+  border-left: 2px solid var(--accent); padding: var(--space-2) 0 var(--space-2) var(--space-3);
+  margin: var(--space-3) 0; font-size: 0.9rem; line-height: 1.55; max-width: var(--measure);
+}
+.coach-rule-tag { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
+
+.coach-actions { gap: var(--space-2); margin-top: var(--space-3); }
+.coach-moves { margin-top: var(--space-3); line-height: 1.8; word-spacing: 2px; }
+
+@media (max-width: 980px) {
+  .coach-card { padding: var(--space-3); }
+}

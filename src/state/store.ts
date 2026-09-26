@@ -41,6 +41,14 @@ interface AppState {
   /** opening id -> furthest lesson step */
   openingStep: Record<string, number>;
   openingQuizBest: Record<string, number>;
+  /**
+   * Which general rules the coach has already explained, by reason code.
+   *
+   * The per-move observation is always worth reading; the rule behind it is
+   * the same every time. Hearing "the opening is a race to develop" four moves
+   * running is how a tutorial starts being ignored.
+   */
+  taught: Record<string, boolean>;
   sessions: SessionRecord[];
   totals: { attempted: number; solved: number; bestStreak: number };
 
@@ -54,6 +62,7 @@ interface AppState {
   markLessonDone: (tag: MotifTag, done: boolean) => void;
   setOpeningStep: (id: string, step: number) => void;
   setOpeningQuizBest: (id: string, score: number) => void;
+  markTaught: (code: string) => void;
   addSession: (s: SessionRecord) => void;
 }
 
@@ -78,6 +87,7 @@ export const useStore = create<AppState>()(
       lessonDone: {},
       openingStep: {},
       openingQuizBest: {},
+      taught: {},
       sessions: [],
       totals: { attempted: 0, solved: 0, bestStreak: 0 },
 
@@ -132,6 +142,9 @@ export const useStore = create<AppState>()(
 
       setOpeningQuizBest: (id, score) =>
         set((s) => ({ openingQuizBest: { ...s.openingQuizBest, [id]: Math.max(score, s.openingQuizBest[id] ?? 0) } })),
+
+      markTaught: (code) =>
+        set((s) => (s.taught[code] ? {} : { taught: { ...s.taught, [code]: true } })),
 
       addSession: (record) =>
         set((s) => ({

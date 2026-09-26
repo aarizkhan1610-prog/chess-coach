@@ -11,6 +11,7 @@ import { LandingPage } from './pages/Landing';
  * which that page uses. The landing route is imported eagerly because it is
  * what most visits start on; the rest arrive when asked for.
  */
+const BasicsPage = lazy(() => import('./pages/Basics').then((m) => ({ default: m.BasicsPage })));
 const ImportPage = lazy(() => import('./pages/Import').then((m) => ({ default: m.ImportPage })));
 const GamesPage = lazy(() => import('./pages/Games').then((m) => ({ default: m.GamesPage })));
 const GameReviewPage = lazy(() => import('./pages/GameReview').then((m) => ({ default: m.GameReviewPage })));
@@ -32,6 +33,7 @@ const NAV = [
   { path: '/profile', icon: '◔', label: 'Weaknesses' },
 ];
 const TRAIN = [
+  { path: '/basics', icon: '◇', label: 'Basics' },
   { path: '/lessons', icon: '⚑', label: 'Lessons' },
   { path: '/puzzles', icon: '✦', label: 'Puzzles' },
   { path: '/openings', icon: '♞', label: 'Openings' },
@@ -166,6 +168,8 @@ function Routes({ parts }: { parts: string[] }) {
     case undefined:
     case 'start':
       return <LandingPage />;
+    case 'basics':
+      return <BasicsPage />;
     case 'import':
       return <ImportPage />;
     case 'games':

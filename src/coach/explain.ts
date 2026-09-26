@@ -6,7 +6,8 @@ import { detectMotifs, phaseOf } from '../chess/motifs';
 import { classifyMove, winLossFor } from '../chess/evaluation';
 import {
   PIECE_VALUE, attacksFrom, developedMinors, findPins, findSkewers, forkTargets,
-  loosePieces, other, pawnStructure, piecesOf, seeMove, seeOnSquare, tryLoad, winningCaptures,
+  fileOf, loosePieces, other, pawnStructure, piecesOf, seeMove, seeOnSquare, tryLoad,
+  winningCaptures,
 } from '../chess/board';
 
 /*
@@ -554,6 +555,54 @@ function detectVirtues(c: Ctx): ExplainPoint[] {
 }
 
 /* ------------------------------------------------------------------ *
+ * Opening habits the evaluation is too forgiving about
+ * ------------------------------------------------------------------ */
+
+function canCastle(fen: string, color: Color): boolean {
+  const rights = fen.split(' ')[2] ?? '-';
+  return color === 'w' ? /[KQ]/.test(rights) : /[kq]/.test(rights);
+}
+
+/**
+ * Soft notes on moves the engine barely minds but a beginner should not play.
+ *
+ * Giving up castling costs a fraction of a pawn, which is nothing next to the
+ * thresholds that decide a move is a mistake — so a king step in the opening
+ * reads as "nothing wrong with that" from the evaluation alone. For a learner
+ * being taught king safety, that answer is worse than useless. These do not
+ * change how severe the move is called; they replace a bland verdict with a
+ * specific one.
+ */
+function cautions(c: Ctx): ExplainPoint[] {
+  const out: ExplainPoint[] = [];
+  if (phaseOf(c.beforeC.fen(), plyOf(c.beforeC.fen())) !== 'opening') return out;
+  const castled = c.played.flags.includes('k') || c.played.flags.includes('q');
+
+  if (!castled && canCastle(c.beforeC.fen(), c.mover) && !canCastle(c.afterC.fen(), c.mover)) {
+    out.push({
+      code: 'king-safety',
+      text: c.played.piece === 'k'
+        ? `Moving the king to ${c.played.to} gives up the right to castle, and it is still sitting in the middle of the board.`
+        : `Moving that rook gives up the right to castle on one side.`,
+      principle: 'Castling is the fastest way to get the king somewhere safe. Once you move the king or a rook, that option is gone for good.',
+      squares: [c.played.to],
+    });
+  }
+
+  const file = fileOf(c.played.to);
+  if (c.played.piece === 'p' && (file === 0 || file === 7) && developedMinors(c.beforeC, c.mover) < 2) {
+    out.push({
+      code: 'development',
+      text: `A pawn on the edge does not fight for the centre or let any of your pieces out.`,
+      principle: 'Rook pawns are the least useful moves in the opening. With pieces still at home, almost anything else does more.',
+      squares: [c.played.to],
+    });
+  }
+
+  return out;
+}
+
+/* ------------------------------------------------------------------ *
  * Entry point
  * ------------------------------------------------------------------ */
 
@@ -681,7 +730,19 @@ export function explainMove(i: ExplainInput): Explanation {
     const kind = virtues.find((v) => v.code === 'develops' || v.code === 'castles' || v.code === 'takes-centre');
     if (kind) concession = kind.text;
   } else {
-    points = virtues.slice(0, 2);
+    // Praise first, then anything worth a word of warning, and only then the
+    // bland answer — which should be rare, because it teaches nothing.
+    points = [...virtues, ...cautions(ctx)].slice(0, 2);
+    if (!points.length) {
+      points = motifs
+        .map((tag) => VICE[tag]?.(ctx) ?? { code: tag, text: FALLBACK[tag] })
+        .filter((p): p is ExplainPoint => Boolean(p))
+        .slice(0, 1);
+      // If the only thing worth saying about a move is what is wrong with it,
+      // it is not a good move, whatever the evaluation thinks. A warning
+      // printed under the word "Good" reads as a bug and is ignored.
+      if (points.length && (tone === 'excellent' || tone === 'good')) tone = 'ok';
+    }
     if (!points.length) {
       points = [{
         code: 'lost-the-initiative',

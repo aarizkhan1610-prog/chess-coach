@@ -8,6 +8,14 @@ export interface AnalyseOptions {
   depth?: number;
   movetime?: number;
   multipv?: number;
+  /**
+   * Stockfish's own handicap, 0 to 20, for playing an opponent rather than
+   * analysing. Left alone this is 20, because a weakened search must never be
+   * used for coaching — the explanation would describe a mistake the engine
+   * made up. `UCI_Elo` is no use here: its floor is 1320, which is far beyond
+   * someone who learned the rules ten minutes ago.
+   */
+  skill?: number;
 }
 
 /** Parse one `info ...` line into a partial engine line, or null if unusable. */
@@ -66,6 +74,7 @@ export class Engine {
   private listeners = new Set<(line: string) => void>();
   private chain: Promise<unknown> = Promise.resolve();
   private multipv = 0;
+  private skill = 20;
   private booted: Promise<void> | null = null;
   private cancelled = false;
 
@@ -211,6 +220,11 @@ export class Engine {
         this.send(`setoption name MultiPV value ${wantMultipv}`);
         this.multipv = wantMultipv;
       }
+      const wantSkill = Math.max(0, Math.min(20, opts.skill ?? 20));
+      if (this.skill !== wantSkill) {
+        this.send(`setoption name Skill Level value ${wantSkill}`);
+        this.skill = wantSkill;
+      }
       this.send('ucinewgame');
       this.send(`position fen ${fen}`);
       if (opts.movetime) this.send(`go movetime ${opts.movetime}`);
@@ -242,6 +256,7 @@ export class Engine {
     this.booted = null;
     this.listeners.clear();
     this.multipv = 0;
+    this.skill = 20;
     this.setStatus('idle');
   }
 }

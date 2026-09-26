@@ -171,6 +171,20 @@ const CASES: Case[] = [
     contains: ['checkmate'],
   },
   {
+    name: 'a king step gives up castling',
+    line: ['e4', 'e6'], move: 'Ke2',
+    wants: ['king-safety'],
+    notTone: ['bad', 'losing'],
+    contains: ['castle'],
+  },
+  {
+    name: 'a rook pawn is called out',
+    line: ['e4', 'e5'], move: 'a3',
+    wants: ['development'],
+    notTone: ['bad', 'losing'],
+    contains: ['edge'],
+  },
+  {
     name: 'leaves a bishop hanging elsewhere',
     line: ['e4', 'e5', 'Bc4', 'Nf6', 'Nc3', 'd5'], move: 'h3',
     wants: ['hanging-piece'],
