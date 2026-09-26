@@ -45,7 +45,8 @@ export function parseInfo(line: string): { multipv: number; depth: number; cp: n
 }
 
 /** UCI reports scores from the mover's point of view; we store white-positive. */
-function toWhitePov(cp: number | null, mate: number | null, turn: string): Evaluation {
+/** Engine output is relative to the side to move; everything downstream is white-relative. */
+export function toWhitePov(cp: number | null, mate: number | null, turn: string): Evaluation {
   const sign = turn === 'w' ? 1 : -1;
   return {
     cp: cp === null ? null : cp * sign,
