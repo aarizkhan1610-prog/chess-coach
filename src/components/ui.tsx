@@ -207,19 +207,21 @@ export function MoveList({ moves, current, onSelect, heroColor }: {
   }
 
   const cell = (m: AnalysedMove | undefined) => {
-    if (!m) return <div className="move-cell empty-cell" />;
+    if (!m) return <span className="move-cell empty-cell" />;
     const meta = VERDICT_META[m.verdict];
     const notable = ['blunder', 'mistake', 'inaccuracy', 'brilliant', 'great'].includes(m.verdict);
     const isHero = heroColor ? m.color === heroColor : true;
     return (
-      <div
+      <button
+        type="button"
         className={`move-cell ${current === m.ply ? 'current' : ''}`}
         onClick={() => onSelect(m.ply)}
+        aria-current={current === m.ply ? 'true' : undefined}
         title={`${meta.label}${m.winLoss > 0 ? ` — lost ${m.winLoss} win%` : ''}`}
       >
         <span style={{ opacity: isHero ? 1 : 0.62 }}>{m.san}</span>
         {notable && <span className="mark" style={{ color: meta.color }}>{meta.symbol}</span>}
-      </div>
+      </button>
     );
   };
 

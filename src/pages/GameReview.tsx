@@ -19,6 +19,11 @@ export function GameReviewPage({ gameId }: { gameId: string }) {
   const setHero = useStore((s) => s.setHero);
   const [ply, setPly] = useState(-1);
   const [flipped, setFlipped] = useState(false);
+  /**
+   * The side panel used to stack accuracy, mistakes and the move list at once.
+   * Three competing regions for one job; only one is wanted at a time.
+   */
+  const [panel, setPanel] = useState<'summary' | 'mistakes' | 'moves'>('mistakes');
 
   useEffect(() => setPly(-1), [gameId]);
 
@@ -151,79 +156,101 @@ export function GameReviewPage({ gameId }: { gameId: string }) {
         </div>
 
         <div className="grid">
-          <Card title="Accuracy">
-            <div className="grid" style={{ gap: 12 }}>
-              <div>
-                <div className="row small">
-                  <span className="bold">{heroName}</span>
-                  <div className="spacer" />
-                  <span className="mono bold" style={{ color: accuracyColor(heroAcc) }}>{heroAcc}%</span>
-                </div>
-                <Meter value={heroAcc} color={accuracyColor(heroAcc)} />
-              </div>
-              <div>
-                <div className="row small">
-                  <span className="dim">{oppName}</span>
-                  <div className="spacer" />
-                  <span className="mono" style={{ color: accuracyColor(oppAcc) }}>{oppAcc}%</span>
-                </div>
-                <Meter value={oppAcc} color={accuracyColor(oppAcc)} />
-              </div>
+          <Card className="pad-0">
+            <div className="panel-tabs" role="tablist">
+              {([
+                ['summary', 'Summary'],
+                ['mistakes', `Mistakes${mistakes.length ? ` (${mistakes.length})` : ''}`],
+                ['moves', 'Moves'],
+              ] as const).map(([id, label]) => (
+                <button
+                  key={id}
+                  role="tab"
+                  aria-selected={panel === id}
+                  className={`panel-tab ${panel === id ? 'active' : ''}`}
+                  onClick={() => setPanel(id)}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
 
-            <div style={{ marginTop: 14, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-              <div className="tiny faint" style={{ marginBottom: 7 }}>YOUR MOVES</div>
-              <div className="row wrap" style={{ gap: 5 }}>
-                {SUMMARY_ORDER.map((v) => {
-                  const n = game.counts[game.hero][v];
-                  if (!n) return null;
-                  return <Pill key={v} color={VERDICT_META[v].color}>{n} {VERDICT_META[v].label.toLowerCase()}</Pill>;
-                })}
-              </div>
-            </div>
-
-            <div style={{ marginTop: 14, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-              <div className="tiny faint" style={{ marginBottom: 7 }}>BY PHASE</div>
-              {(['opening', 'middlegame', 'endgame'] as const).map((p) => {
-                const v = game.accuracyByPhase[p][game.hero];
-                if (!v) return null;
-                return (
-                  <div key={p} style={{ marginBottom: 7 }}>
-                    <div className="row tiny"><span className="dim" style={{ textTransform: 'capitalize' }}>{p}</span><div className="spacer" /><span className="mono">{v}%</span></div>
-                    <Meter value={v} color={accuracyColor(v)} />
+            <div className="panel-body">
+              {panel === 'summary' && (
+                <div className="grid" style={{ gap: 'var(--space-4)' }}>
+                  <div>
+                    <div className="row small">
+                      <span className="bold">{heroName}</span>
+                      <div className="spacer" />
+                      <span className="mono bold" style={{ color: accuracyColor(heroAcc) }}>{heroAcc}%</span>
+                    </div>
+                    <Meter value={heroAcc} color={accuracyColor(heroAcc)} />
+                    <div className="row small" style={{ marginTop: 'var(--space-3)' }}>
+                      <span className="dim">{oppName}</span>
+                      <div className="spacer" />
+                      <span className="mono" style={{ color: accuracyColor(oppAcc) }}>{oppAcc}%</span>
+                    </div>
+                    <Meter value={oppAcc} color={accuracyColor(oppAcc)} />
                   </div>
-                );
-              })}
+
+                  <div>
+                    <div className="tiny faint" style={{ marginBottom: 'var(--space-2)' }}>YOUR MOVES</div>
+                    <div className="row wrap" style={{ gap: 'var(--space-1)' }}>
+                      {SUMMARY_ORDER.map((v) => {
+                        const n = game.counts[game.hero][v];
+                        if (!n) return null;
+                        return <Pill key={v} color={VERDICT_META[v].color}>{n} {VERDICT_META[v].label.toLowerCase()}</Pill>;
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="tiny faint" style={{ marginBottom: 'var(--space-2)' }}>BY PHASE</div>
+                    {(['opening', 'middlegame', 'endgame'] as const).map((ph) => {
+                      const v = game.accuracyByPhase[ph][game.hero];
+                      if (!v) return null;
+                      return (
+                        <div key={ph} style={{ marginBottom: 'var(--space-2)' }}>
+                          <div className="row tiny">
+                            <span className="dim" style={{ textTransform: 'capitalize' }}>{ph}</span>
+                            <div className="spacer" />
+                            <span className="mono">{v}%</span>
+                          </div>
+                          <Meter value={v} color={accuracyColor(v)} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {panel === 'mistakes' && (
+                mistakes.length === 0 ? (
+                  <div className="small dim">No mistakes found in this game. Well played.</div>
+                ) : (
+                  <div className="grid" style={{ gap: 'var(--space-2)' }}>
+                    {mistakes.map((m) => (
+                      <button key={m.ply} className="btn sm" style={{ justifyContent: 'flex-start', gap: 'var(--space-2)' }}
+                        onClick={() => setPly(m.ply)}>
+                        <span className="mono" style={{ minWidth: 54, textAlign: 'left' }}>
+                          {m.moveNumber}{m.color === 'w' ? '.' : '\u2026'} {m.san}
+                        </span>
+                        <span className="mark bold" style={{ color: VERDICT_META[m.verdict].color }}>{VERDICT_META[m.verdict].symbol}</span>
+                        <div className="spacer" />
+                        <span className="tiny faint">{'\u2212'}{m.winLoss}</span>
+                      </button>
+                    ))}
+                    <button className="btn sm primary" style={{ marginTop: 'var(--space-2)' }} onClick={() => navigate('/puzzles/rewind')}>
+                      Train these as puzzles
+                    </button>
+                  </div>
+                )
+              )}
+
+              {panel === 'moves' && (
+                <MoveList moves={game.moves} current={ply} onSelect={setPly} heroColor={game.hero} />
+              )}
             </div>
-          </Card>
-
-          {mistakes.length > 0 && (
-            <Card title={`Your mistakes (${mistakes.length})`}>
-              <div className="grid" style={{ gap: 6 }}>
-                {mistakes.map((m) => (
-                  <button
-                    key={m.ply}
-                    className="btn sm"
-                    style={{ justifyContent: 'flex-start', gap: 8 }}
-                    onClick={() => setPly(m.ply)}
-                  >
-                    <span className="mono" style={{ minWidth: 54, textAlign: 'left' }}>
-                      {m.moveNumber}{m.color === 'w' ? '.' : '…'} {m.san}
-                    </span>
-                    <span className="mark bold" style={{ color: VERDICT_META[m.verdict].color }}>{VERDICT_META[m.verdict].symbol}</span>
-                    <div className="spacer" />
-                    <span className="tiny faint">−{m.winLoss}</span>
-                  </button>
-                ))}
-              </div>
-              <button className="btn sm primary" style={{ marginTop: 10, width: '100%' }} onClick={() => navigate('/puzzles/rewind')}>
-                Train these as puzzles
-              </button>
-            </Card>
-          )}
-
-          <Card title="Moves">
-            <MoveList moves={game.moves} current={ply} onSelect={setPly} heroColor={game.hero} />
           </Card>
         </div>
       </div>
