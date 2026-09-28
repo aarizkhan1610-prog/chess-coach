@@ -962,3 +962,34 @@ tr.clickable:hover td { background: var(--surface-2); }
 @media (max-width: 980px) {
   .coach-card { padding: var(--space-3); }
 }
+
+/* ---- The beginner track ----------------------------------------------- */
+
+.basics-stage { margin-bottom: var(--space-6); }
+.basics-stage h2 { margin: 0 0 var(--space-3); }
+
+/* Prose beside the diagram, stacking under it on a narrow screen. */
+.basics-read {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 38%);
+  gap: var(--space-5); align-items: start; margin-bottom: var(--space-6);
+}
+.basics-prose p { margin: 0 0 var(--space-3); }
+.basics-figure { margin: 0; display: grid; gap: var(--space-2); }
+
+.drill {
+  display: grid; grid-template-columns: minmax(240px, 46%) minmax(0, 1fr);
+  gap: var(--space-5); align-items: start;
+}
+.drill > * { min-width: 0; }
+.drill-board { max-width: 480px; }
+.drill-task { margin: 0 0 var(--space-2); font-size: 1.02rem; font-weight: 640; line-height: 1.5; max-width: var(--measure); }
+.drill-task.done { color: var(--good); font-weight: 600; }
+.drill-note { margin: 0 0 var(--space-2); max-width: var(--measure); }
+.drill-actions { gap: var(--space-2); margin-top: var(--space-3); align-items: center; }
+
+.basics-next { margin-top: var(--space-6); padding-top: var(--space-4); border-top: 1px solid var(--border); }
+
+@media (max-width: 980px) {
+  .basics-read, .drill { grid-template-columns: minmax(0, 1fr); }
+  .basics-figure { max-width: 480px; }
+}

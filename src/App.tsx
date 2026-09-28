@@ -12,6 +12,8 @@ import { LandingPage } from './pages/Landing';
  * what most visits start on; the rest arrive when asked for.
  */
 const BasicsPage = lazy(() => import('./pages/Basics').then((m) => ({ default: m.BasicsPage })));
+const BasicsPlayPage = lazy(() => import('./pages/Basics').then((m) => ({ default: m.BasicsPlayPage })));
+const BasicsSectionPage = lazy(() => import('./pages/Basics').then((m) => ({ default: m.BasicsSectionPage })));
 const ImportPage = lazy(() => import('./pages/Import').then((m) => ({ default: m.ImportPage })));
 const GamesPage = lazy(() => import('./pages/Games').then((m) => ({ default: m.GamesPage })));
 const GameReviewPage = lazy(() => import('./pages/GameReview').then((m) => ({ default: m.GameReviewPage })));
@@ -169,7 +171,8 @@ function Routes({ parts }: { parts: string[] }) {
     case 'start':
       return <LandingPage />;
     case 'basics':
-      return <BasicsPage />;
+      if (!arg) return <BasicsPage />;
+      return arg === 'play' ? <BasicsPlayPage /> : <BasicsSectionPage key={arg} id={arg} />;
     case 'import':
       return <ImportPage />;
     case 'games':

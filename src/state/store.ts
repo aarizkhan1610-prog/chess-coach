@@ -49,6 +49,8 @@ interface AppState {
    * running is how a tutorial starts being ignored.
    */
   taught: Record<string, boolean>;
+  /** Beginner drills finished, by drill id. */
+  basicsDone: Record<string, boolean>;
   sessions: SessionRecord[];
   totals: { attempted: number; solved: number; bestStreak: number };
 
@@ -63,6 +65,7 @@ interface AppState {
   setOpeningStep: (id: string, step: number) => void;
   setOpeningQuizBest: (id: string, score: number) => void;
   markTaught: (code: string) => void;
+  markBasicDone: (id: string) => void;
   addSession: (s: SessionRecord) => void;
 }
 
@@ -88,6 +91,7 @@ export const useStore = create<AppState>()(
       openingStep: {},
       openingQuizBest: {},
       taught: {},
+      basicsDone: {},
       sessions: [],
       totals: { attempted: 0, solved: 0, bestStreak: 0 },
 
@@ -142,6 +146,9 @@ export const useStore = create<AppState>()(
 
       setOpeningQuizBest: (id, score) =>
         set((s) => ({ openingQuizBest: { ...s.openingQuizBest, [id]: Math.max(score, s.openingQuizBest[id] ?? 0) } })),
+
+      markBasicDone: (id) =>
+        set((s) => (s.basicsDone[id] ? {} : { basicsDone: { ...s.basicsDone, [id]: true } })),
 
       markTaught: (code) =>
         set((s) => (s.taught[code] ? {} : { taught: { ...s.taught, [code]: true } })),
