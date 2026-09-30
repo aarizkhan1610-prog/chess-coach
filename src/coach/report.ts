@@ -234,6 +234,39 @@ export function summarise(band: Band, scored: AxisScores[]): BandStats {
   return { ...band, games: scored.length, median, p25, p75, n };
 }
 
+/**
+ * One shape for a whole set of games.
+ *
+ * The median of the per-game scores rather than the mean, and the same
+ * statistic the benchmark itself is built from — so the player's shape and the
+ * band's shape are computed the same way and can honestly be drawn on top of
+ * one another. A single disastrous game should not redraw the profile, which is
+ * exactly what a mean would let it do.
+ */
+export function aggregateScores(games: AnalysedGame[], minGames = 3): AxisScores {
+  const scored = games.map((g) => scoreGame(g, g.hero));
+  const out = {} as AxisScores;
+  for (const axis of AXES) {
+    const values = scored
+      .map((s) => s[axis.id])
+      .filter((v): v is number => v !== null)
+      .sort((a, b) => a - b);
+    out[axis.id] = values.length >= minGames ? percentile(values, 0.5) : null;
+  }
+  return out;
+}
+
+/** Per-game accuracy in the order they were played, for a trend. */
+export function accuracyOverTime(games: AnalysedGame[]): { id: string; label: string; accuracy: number }[] {
+  return [...games]
+    .sort((a, b) => a.analysedAt - b.analysedAt)
+    .map((g) => ({
+      id: g.id,
+      label: g.hero === 'w' ? g.meta.black : g.meta.white,
+      accuracy: g.accuracy[g.hero],
+    }));
+}
+
 /** The axes both the game and the benchmark can actually speak to. */
 export function comparableAxes(scores: AxisScores, band: BandStats) {
   return AXES.filter((a) => scores[a.id] !== null && band.median[a.id] !== null);

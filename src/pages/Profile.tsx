@@ -3,6 +3,11 @@ import { useGames, useStore } from '../state/store';
 import { buildProfile, coachSummary } from '../coach/weaknesses';
 import { examplesFor } from '../coach/lessons';
 import { ReportTabs } from '../components/ReportTabs';
+import { RadarChart } from '../components/RadarChart';
+import { TrendChart } from '../components/TrendChart';
+import { accuracyOverTime, aggregateScores, comparableAxes, pickBand } from '../coach/report';
+import { ratingFromGames } from '../coach/recommend';
+import { BENCHMARK, BENCHMARK_BUILT } from '../coach/benchmark';
 import { Board } from '../components/Board';
 import { Card, Empty, Meter, Pill, Stat, accuracyColor, formatDate, navigate } from '../components/ui';
 import { MOTIF_META, type MotifTag, type MoveVerdict } from '../types';
@@ -15,6 +20,7 @@ export function ProfilePage() {
   const profile = useMemo(() => buildProfile(games), [games]);
   const summary = useMemo(() => coachSummary(profile), [profile]);
   const solverRating = useStore((s) => s.solverRating);
+  const ownRating = useStore((s) => s.settings.rating);
   const totals = useStore((s) => s.totals);
   const [open, setOpen] = useState<MotifTag | null>(null);
 
@@ -33,6 +39,13 @@ export function ProfilePage() {
   const totalMoves = Object.values(profile.verdicts).reduce((a, b) => a + b, 0);
   const examples = open ? examplesFor(games, open, 4) : [];
 
+  /* The shape of all your games, against players at the same rating. */
+  const shape = aggregateScores(games);
+  const rating = ownRating ?? ratingFromGames(games);
+  const band = pickBand(BENCHMARK, rating);
+  const drawn = band ? comparableAxes(shape, band.band) : [];
+  const trend = accuracyOverTime(games);
+
   return (
     <div>
       <div className="page-head">
@@ -46,6 +59,51 @@ export function ProfilePage() {
       <ReportTabs active="overview" count={games.length} />
 
       <div className="grid" style={{ gap: 16 }}>
+        {band && drawn.length >= 3 && (
+          <Card title="Your game, in shape">
+            <div className="report-shape">
+              <RadarChart scores={shape} band={band.band} label={`Your ${profile.games} games`} />
+              <div className="report-shape-read">
+                <p>
+                  Each axis is the median across your games, scored exactly as the {band.band.games} real
+                  games at {band.band.label} were scored — so the two shapes are directly comparable rather
+                  than merely drawn together.
+                </p>
+                <ul className="report-gaps">
+                  {[...drawn]
+                    .map((a) => ({ axis: a, gap: (shape[a.id] as number) - (band.band.median[a.id] as number) }))
+                    .sort((x, y) => x.gap - y.gap)
+                    .map(({ axis, gap }) => (
+                      <li key={axis.id}>
+                        <span className="report-gap-axis">{axis.label}</span>
+                        <span
+                          className="report-gap-value mono"
+                          style={{ color: gap >= 0 ? 'var(--good)' : 'var(--bad)' }}
+                        >
+                          {gap >= 0 ? '+' : '−'}{Math.abs(Math.round(gap))}
+                        </span>
+                        <span className="report-gap-note tiny faint">
+                          {shape[axis.id]} against {band.band.median[axis.id]} typical
+                        </span>
+                      </li>
+                    ))}
+                </ul>
+                {!band.exact && (
+                  <p className="tiny faint">
+                    Compared against {band.band.label}, the nearest band with enough games to be a fair
+                    yardstick.
+                  </p>
+                )}
+                <p className="tiny faint">Typical figures measured from real rated games on {BENCHMARK_BUILT}.</p>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        <Card title={`Accuracy across your ${profile.games} games`}>
+          <TrendChart points={trend} onSelect={(id) => navigate(`/game/${id}`)} />
+        </Card>
+
         <Card>
           <div className="stats-row">
             <Stat value={`${profile.accuracy}%`} label="Overall accuracy" tone={accuracyColor(profile.accuracy)} />
@@ -177,8 +235,8 @@ export function ProfilePage() {
             {profile.openingRecord.length === 0 ? (
               <div className="small dim">No openings recognised yet.</div>
             ) : (
-              <table>
-                <thead><tr><th>Opening</th><th style={{ width: 60 }}>Games</th><th style={{ width: 70 }}>Score</th><th style={{ width: 70 }}>Acc.</th></tr></thead>
+              <table className="table-tight">
+                <thead><tr><th>Opening</th><th style={{ width: 52 }}>Games</th><th style={{ width: 58 }}>Score</th><th style={{ width: 58 }}>Acc.</th></tr></thead>
                 <tbody>
                   {profile.openingRecord.map((o) => (
                     <tr key={o.openingId}>
