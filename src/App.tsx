@@ -11,6 +11,7 @@ import { LandingPage } from './pages/Landing';
  * which that page uses. The landing route is imported eagerly because it is
  * what most visits start on; the rest arrive when asked for.
  */
+const CoachPage = lazy(() => import('./pages/Coach').then((m) => ({ default: m.CoachPage })));
 const BasicsPage = lazy(() => import('./pages/Basics').then((m) => ({ default: m.BasicsPage })));
 const BasicsPlayPage = lazy(() => import('./pages/Basics').then((m) => ({ default: m.BasicsPlayPage })));
 const BasicsGamePage = lazy(() => import('./pages/Basics').then((m) => ({ default: m.BasicsGamePage })));
@@ -30,17 +31,22 @@ const OpeningPage = lazy(() => import('./pages/Openings').then((m) => ({ default
 import { buildProfile } from './coach/weaknesses';
 import type { MotifTag } from './types';
 
+/*
+ * The two things the app is for — being coached, and having your games read —
+ * and nothing else competing with them.
+ *
+ * Lessons, puzzles and openings are deliberately absent. They are worth
+ * reaching when something in your own play points at them, not as four more
+ * places to browse before you have played anything; their routes stay live so
+ * every recommendation still opens.
+ */
 const NAV = [
   { path: '/', icon: '⌂', label: 'Home' },
+  { path: '/coach', icon: '◎', label: 'Coach' },
   { path: '/games', icon: '♜', label: 'Games' },
   { path: '/profile', icon: '◔', label: 'Weaknesses' },
 ];
-const TRAIN = [
-  { path: '/basics', icon: '◇', label: 'Basics' },
-  { path: '/lessons', icon: '⚑', label: 'Lessons' },
-  { path: '/puzzles', icon: '✦', label: 'Puzzles' },
-  { path: '/openings', icon: '♞', label: 'Openings' },
-];
+const LEARN = { path: '/basics', icon: '◇', label: 'Learn to play' };
 
 export default function App() {
   const [parts] = useRoute();
@@ -109,17 +115,14 @@ export default function App() {
           </a>
         ))}
 
-        <div className="nav-section">Train</div>
-        {TRAIN.map((item) => (
-          <a
-            key={item.path}
-            href={`#${item.path}`}
-            className={`nav-item ${section === item.path.slice(1) ? 'active' : ''}`}
-          >
-            <span className="nav-icon">{item.icon}</span>
-            <span>{item.label}</span>
-          </a>
-        ))}
+        <div className="nav-section">New to chess</div>
+        <a
+          href={`#${LEARN.path}`}
+          className={`nav-item ${section === LEARN.path.slice(1) ? 'active' : ''}`}
+        >
+          <span className="nav-icon">{LEARN.icon}</span>
+          <span>{LEARN.label}</span>
+        </a>
 
         <div className="sidebar-foot">
           <a href="#/settings" className={`nav-item ${section === 'settings' ? 'active' : ''}`}>
@@ -171,6 +174,8 @@ function Routes({ parts }: { parts: string[] }) {
     case undefined:
     case 'start':
       return <LandingPage />;
+    case 'coach':
+      return <CoachPage />;
     case 'basics':
       if (!arg) return <BasicsPage />;
       if (arg === 'play') return <BasicsPlayPage />;
