@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Chess } from 'chess.js';
 import { Board } from '../components/Board';
 import { CoachedBoard } from '../components/CoachedBoard';
@@ -41,8 +41,11 @@ function SectionRow({ tour, done }: { tour: Tour; done: Record<string, boolean> 
 
 export function BasicsPage() {
   const done = useStore((s) => s.basicsDone);
-  const total = [...TOURS, ...RULES].reduce((n, t) => n + t.drills.length, 0);
-  const finished = Object.keys(done).filter((k) => done[k]).length;
+  // Count drills by id rather than counting keys: the same map also records
+  // the guided game, which would otherwise make the total exceed itself.
+  const drillIds = [...TOURS, ...RULES].flatMap((t) => t.drills.map((d) => d.id));
+  const finished = drillIds.filter((id) => done[id]).length;
+  const total = drillIds.length;
 
   return (
     <div>
@@ -164,10 +167,15 @@ export function BasicsSectionPage({ id }: { id: string }) {
     }
   }, [tour]);
 
-  if (!tour) {
-    navigate('/basics');
-    return null;
-  }
+  // An unknown id sends you back to the contents — from an effect, because
+  // navigating writes the hash, and doing that mid-render updates the router
+  // while another component is rendering.
+  useEffect(() => {
+    if (!tour) navigate('/basics');
+  }, [tour]);
+
+  if (!tour) return null;
+
 
   const drill = tour.drills[index];
   const all = tour.drills.length;

@@ -53,7 +53,11 @@ export function DrillBoard({ drill, onSolved }: { drill: Drill; onSolved: () => 
     }
     if (next.over === 'stalemate') setNote('That is stalemate — no legal move, but no check either, so the game is a draw.');
     else if (next.over === 'mate') setNote('That is checkmate.');
-    else if (next.reply) setNote(`That was check, so the king stepped away with ${next.reply}.`);
+    else if (next.reply) {
+      setNote(next.replyIsKing
+        ? `That was check, so the king stepped away with ${next.reply}.`
+        : `That was check, and it was answered with ${next.reply}.`);
+    }
     else setNote(n >= 2 ? drill.hint : null);
   }
 

@@ -20,11 +20,7 @@ export function GuidedGameBoard({ game }: { game: Game }) {
   const [offScript, setOffScript] = useState(false);
   const [beaten, setBeaten] = useState(false);
 
-  /**
-   * How many of the learner's moves have been kept. It is derived from the
-   * move list rather than counted separately, so a take-back cannot leave the
-   * script pointing at the wrong move.
-   */
+  /** How many of the learner's moves have been kept, so which move is next. */
   const [ply, setPly] = useState(0);
   const step = game.moves[ply];
   const free = ply >= game.freeFrom;
@@ -47,9 +43,11 @@ export function GuidedGameBoard({ game }: { game: Game }) {
   const matched = coach.candidate && step ? sameMove(coach.candidate, step.san) : false;
 
   const keep = useCallback(() => {
+    // Only advance the script if the move was actually committed. A second
+    // click that the coach ignores must not move the game on without it.
+    if (!coach.keep()) return;
     if (!matched) setOffScript(true);
     setPly((n) => n + 1);
-    coach.keep();
   }, [matched, coach]);
 
   const restart = useCallback(() => {

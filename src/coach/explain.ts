@@ -110,8 +110,21 @@ function materialCost(fenBefore: string, playedUci: string, refutationPv: string
   const start = balance(line, mover);
   if (!playUci(line, playedUci)) return 0;
   const n = Math.min(4, refutationPv.length);
-  for (const uci of refutationPv.slice(0, n - (n % 2))) {
+  let landed: Square | null = null;
+  for (const uci of refutationPv.slice(0, n)) {
     if (!playUci(line, uci)) break;
+    landed = uci.slice(2, 4);
+  }
+  /*
+   * An odd number of plies leaves an exchange half-played, which reads as a
+   * loss when it was a trade. Rounding down is not the answer either: a
+   * one-move line would then be dropped entirely and a hung piece would come
+   * back as costing nothing. So the mover gets their recapture, if taking back
+   * is actually good for them.
+   */
+  if (line.turn() === mover && landed) {
+    const back = winningCaptures(line, 0).find((c) => c.to === landed);
+    if (back) playUci(line, `${back.from}${back.to}`);
   }
   return balance(line, mover) - start;
 }

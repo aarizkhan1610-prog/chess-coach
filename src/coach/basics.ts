@@ -335,6 +335,8 @@ export interface Advance {
   fen: string;
   /** The opponent's forced reply, when they had to answer a check. */
   reply: string | null;
+  /** Whether that reply was the king moving, rather than a block or a capture. */
+  replyIsKing: boolean;
   over: 'mate' | 'stalemate' | null;
 }
 
@@ -356,17 +358,21 @@ export function advance(fen: string, move: { from: string; to: string; promotion
     return null;
   }
 
-  if (board.isCheckmate()) return { fen: board.fen(), reply: null, over: 'mate' };
-  if (board.isStalemate()) return { fen: board.fen(), reply: null, over: 'stalemate' };
+  if (board.isCheckmate()) return { fen: board.fen(), reply: null, replyIsKing: false, over: 'mate' };
+  if (board.isStalemate()) return { fen: board.fen(), reply: null, replyIsKing: false, over: 'stalemate' };
 
   if (board.inCheck()) {
-    const escape = board.moves({ verbose: true })[0];
-    if (!escape) return { fen: board.fen(), reply: null, over: 'mate' };
+    const legal = board.moves({ verbose: true });
+    // Prefer the king stepping away: it is the answer to check these drills are
+    // teaching, and blocking or capturing would need explaining in its own
+    // right. Whichever it turns out to be, say which so the caption is true.
+    const escape = legal.find((m) => m.piece === 'k') ?? legal[0];
+    if (!escape) return { fen: board.fen(), reply: null, replyIsKing: false, over: 'mate' };
     board.move(escape);
-    return { fen: board.fen(), reply: escape.san, over: null };
+    return { fen: board.fen(), reply: escape.san, replyIsKing: escape.piece === 'k', over: null };
   }
 
-  return { fen: withTurn(board.fen(), mover), reply: null, over: null };
+  return { fen: withTurn(board.fen(), mover), reply: null, replyIsKing: false, over: null };
 }
 
 /** Count of everything `color` has on the board, by type. */

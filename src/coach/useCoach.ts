@@ -64,7 +64,8 @@ export interface CoachApi {
   endsGame: boolean;
   result: string | null;
   tryMove: (move: { from: string; to: string; promotion?: string }) => void;
-  keep: () => void;
+  /** Commits the move under consideration. False when there was nothing to commit. */
+  keep: () => boolean;
   undo: () => void;
   togglePunishment: () => void;
   reset: () => void;
@@ -108,6 +109,27 @@ export function useCoach(options: CoachOptions = {}): CoachApi {
   const prefetch = useRef<{ fen: string; job: Promise<PositionAnalysis | null> } | null>(null);
   const alive = useRef(true);
 
+  /**
+   * The phase, readable synchronously.
+   *
+   * React state is a render behind, so two clicks landing in the same batch
+   * both see the phase they were rendered with and both commit the move —
+   * which appends the opponent's reply twice and leaves a scripted game a move
+   * ahead of the board. The same reason `Board` keeps its drag origin in a ref.
+   */
+  const phaseRef = useRef<CoachPhase>('yours');
+  const move = useCallback((next: CoachPhase) => {
+    phaseRef.current = next;
+    setPhase(next);
+  }, []);
+
+  /**
+   * Bumped whenever the position is rewound or restarted. Analysis already in
+   * flight belongs to a move that no longer exists, and writing its verdict
+   * would leave a card on screen describing a move that is not on the board.
+   */
+  const generation = useRef(0);
+
   /*
    * Set on the way in as well as cleared on the way out. React runs mount,
    * cleanup, mount in development, so a ref that is only ever cleared stays
@@ -141,49 +163,50 @@ export function useCoach(options: CoachOptions = {}): CoachApi {
     } else {
       return false;
     }
-    setPhase('over');
+    move('over');
     return true;
   }, []);
 
   const playOpponent = useCallback(async (fenNow: string, hist: string[]) => {
     const board = new Chess(fenNow);
-    let move: Move | null = null;
+    let reply: Move | null = null;
 
     const scripted = opponentMove?.(fenNow, hist);
     if (scripted) {
-      try { move = board.move(scripted); } catch { move = null; }
+      try { reply = board.move(scripted); } catch { reply = null; }
     }
-    if (!move) {
+    if (!reply) {
       const analysis = await engine
         .analyse(fenNow, { depth: 8, multipv: 1, skill: opponentSkill })
         .catch(() => null);
       const uci = analysis?.lines[0]?.pv[0];
       if (uci) {
         try {
-          move = board.move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci.slice(4, 5) || undefined });
-        } catch { move = null; }
+          reply = board.move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci.slice(4, 5) || undefined });
+        } catch { reply = null; }
       }
     }
     if (!alive.current) return;
-    if (!move) { setPhase('yours'); return; }
+    if (!reply) { move('yours'); return; }
 
-    incoming.current = { to: move.to, captured: move.captured };
+    incoming.current = { to: reply.to, captured: reply.captured };
     setFen(board.fen());
-    setLastMove({ from: move.from, to: move.to });
-    setHistory((h) => [...h, move!.san]);
-    if (!finishIfOver(board)) setPhase('yours');
-  }, [engine, opponentMove, opponentSkill, finishIfOver]);
+    setLastMove({ from: reply.from, to: reply.to });
+    setHistory((h) => [...h, reply!.san]);
+    if (!finishIfOver(board)) move('yours');
+  }, [engine, opponentMove, opponentSkill, finishIfOver, move]);
 
-  const tryMove = useCallback((move: { from: string; to: string; promotion?: string }) => {
-    if (phase !== 'yours') return;
+  const tryMove = useCallback((wanted: { from: string; to: string; promotion?: string }) => {
+    if (phaseRef.current !== 'yours') return;
 
     const board = new Chess(fen);
     let played: Move;
     try {
-      played = board.move(move);
+      played = board.move(wanted);
     } catch {
       return;
     }
+    const gen = ++generation.current;
 
     const fenBefore = fen;
     const snapshot: Snapshot = { fen: fenBefore, lastMove };
@@ -194,7 +217,7 @@ export function useCoach(options: CoachOptions = {}): CoachApi {
     pending.current = { from: played.from, to: played.to };
     setCandidate(played.san);
     setEndsGame(over);
-    setPhase('thinking');
+    move('thinking');
     // Show the move straight away. Waiting for the engine before the piece
     // lands makes the board feel broken, however short the wait is.
     setFen(board.fen());
@@ -206,8 +229,8 @@ export function useCoach(options: CoachOptions = {}): CoachApi {
         pre,
         over ? Promise.resolve(null) : analyse(board.fen()),
       ]);
-      if (!alive.current) return;
-      if (!beforeAnalysis) { setPhase('verdict'); setExplanation(null); return; }
+      if (!alive.current || generation.current !== gen) return;
+      if (!beforeAnalysis) { move('verdict'); setExplanation(null); return; }
 
       try {
         setExplanation(explainMove({
@@ -223,12 +246,13 @@ export function useCoach(options: CoachOptions = {}): CoachApi {
       } catch {
         setExplanation(null);
       }
-      setPhase('verdict');
+      move('verdict');
     })();
-  }, [phase, fen, lastMove, analyse]);
+  }, [fen, lastMove, analyse, move]);
 
-  const keep = useCallback(() => {
-    if (phase !== 'verdict') return;
+  const keep = useCallback((): boolean => {
+    if (phaseRef.current !== 'verdict') return false;
+    generation.current += 1;
     const board = new Chess(fen);
     const hist = candidate ? [...history, candidate] : history;
     setHistory(hist);
@@ -241,18 +265,20 @@ export function useCoach(options: CoachOptions = {}): CoachApi {
     before.current = null;
     incoming.current = null;
 
-    if (finishIfOver(board)) return;
+    if (finishIfOver(board)) return true;
     if (userSide !== 'both' && board.turn() !== userSide) {
-      setPhase('theirs');
+      move('theirs');
       void playOpponent(fen, hist);
-      return;
+      return true;
     }
-    setPhase('yours');
-  }, [phase, fen, candidate, history, userSide, finishIfOver, playOpponent]);
+    move('yours');
+    return true;
+  }, [fen, candidate, history, userSide, finishIfOver, playOpponent, move]);
 
   const undo = useCallback(() => {
     const snapshot = before.current;
     if (!snapshot) return;
+    generation.current += 1;
     setFen(snapshot.fen);
     setLastMove(snapshot.lastMove);
     setExplanation(null);
@@ -261,8 +287,8 @@ export function useCoach(options: CoachOptions = {}): CoachApi {
     setEndsGame(false);
     pending.current = null;
     before.current = null;
-    setPhase('yours');
-  }, []);
+    move('yours');
+  }, [move]);
 
   /*
    * Play the punishment out rather than naming it. For a beginner, watching
@@ -285,8 +311,9 @@ export function useCoach(options: CoachOptions = {}): CoachApi {
   }, [explanation, fen]);
 
   const reset = useCallback(() => {
+    generation.current += 1;
     setFen(startFen);
-    setPhase('yours');
+    move('yours');
     setLastMove(null);
     setHistory([]);
     setExplanation(null);
@@ -299,7 +326,7 @@ export function useCoach(options: CoachOptions = {}): CoachApi {
     pending.current = null;
     mine.current = [];
     prefetch.current = null;
-  }, [startFen]);
+  }, [startFen, move]);
 
   return {
     fen,

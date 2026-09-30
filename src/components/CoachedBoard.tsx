@@ -204,9 +204,7 @@ export function CoachView({
                 </button>
               )}
               {actions}
-              <button className="btn sm" onClick={coach.undo}>
-                {coach.endsGame ? 'Take it back' : undoLabel ?? 'Take it back'}
-              </button>
+              <button className="btn sm" onClick={coach.undo}>{undoLabel ?? 'Take it back'}</button>
               <button className="btn primary sm" onClick={onKeep ?? coach.keep}>
                 {keepLabel ?? (coach.endsGame ? 'Finish' : 'Keep it')}
               </button>
