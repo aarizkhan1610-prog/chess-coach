@@ -11,190 +11,190 @@ export const BENCHMARK: BandStats[] = [
     "from": 0,
     "to": 1099,
     "label": "Under 1100",
-    "games": 22,
+    "games": 60,
     "median": {
-      "opening": 77,
-      "middlegame": 71,
-      "endgame": null,
-      "tactics": 21,
-      "blunders": 70,
-      "conversion": 2
+      "opening": 75,
+      "middlegame": 78,
+      "endgame": 94,
+      "tactics": 65,
+      "blunders": 100,
+      "conversion": 54
     },
     "p25": {
-      "opening": 64,
-      "middlegame": 61,
-      "endgame": null,
-      "tactics": 0,
-      "blunders": 51,
-      "conversion": 0
+      "opening": 69,
+      "middlegame": 62,
+      "endgame": 91,
+      "tactics": 31,
+      "blunders": 65,
+      "conversion": 17
     },
     "p75": {
-      "opening": 84,
-      "middlegame": 76,
-      "endgame": null,
-      "tactics": 42,
+      "opening": 85,
+      "middlegame": 90,
+      "endgame": 96,
+      "tactics": 82,
       "blunders": 100,
-      "conversion": 23
+      "conversion": 77
     },
     "n": {
-      "opening": 22,
-      "middlegame": 21,
-      "endgame": 3,
-      "tactics": 22,
-      "blunders": 22,
-      "conversion": 12
+      "opening": 60,
+      "middlegame": 59,
+      "endgame": 13,
+      "tactics": 60,
+      "blunders": 60,
+      "conversion": 22
     }
   },
   {
     "from": 1100,
     "to": 1399,
     "label": "1100–1399",
-    "games": 22,
+    "games": 60,
     "median": {
-      "opening": 86,
-      "middlegame": 69,
-      "endgame": 92,
-      "tactics": 39,
-      "blunders": 70,
-      "conversion": 0
+      "opening": 82,
+      "middlegame": 72,
+      "endgame": 90,
+      "tactics": 59,
+      "blunders": 83,
+      "conversion": 49
     },
     "p25": {
-      "opening": 80,
-      "middlegame": 60,
-      "endgame": 90,
-      "tactics": 0,
-      "blunders": 50,
-      "conversion": 0
+      "opening": 78,
+      "middlegame": 59,
+      "endgame": 87,
+      "tactics": 22,
+      "blunders": 53,
+      "conversion": 21
     },
     "p75": {
-      "opening": 92,
-      "middlegame": 81,
-      "endgame": 93,
-      "tactics": 69,
+      "opening": 91,
+      "middlegame": 84,
+      "endgame": 97,
+      "tactics": 87,
       "blunders": 100,
-      "conversion": 37
+      "conversion": 76
     },
     "n": {
-      "opening": 22,
-      "middlegame": 22,
-      "endgame": 7,
-      "tactics": 22,
-      "blunders": 22,
-      "conversion": 6
+      "opening": 60,
+      "middlegame": 58,
+      "endgame": 11,
+      "tactics": 60,
+      "blunders": 60,
+      "conversion": 26
     }
   },
   {
     "from": 1400,
     "to": 1699,
     "label": "1400–1699",
-    "games": 22,
+    "games": 60,
     "median": {
-      "opening": 90,
-      "middlegame": 81,
-      "endgame": 95,
-      "tactics": 76,
-      "blunders": 94,
-      "conversion": 33
-    },
-    "p25": {
-      "opening": 82,
-      "middlegame": 71,
-      "endgame": 93,
-      "tactics": 39,
-      "blunders": 70,
-      "conversion": 0
-    },
-    "p75": {
-      "opening": 95,
-      "middlegame": 91,
-      "endgame": 96,
-      "tactics": 100,
+      "opening": 88,
+      "middlegame": 77,
+      "endgame": 94,
+      "tactics": 70,
       "blunders": 100,
       "conversion": 63
     },
+    "p25": {
+      "opening": 82,
+      "middlegame": 66,
+      "endgame": 92,
+      "tactics": 51,
+      "blunders": 69,
+      "conversion": 40
+    },
+    "p75": {
+      "opening": 93,
+      "middlegame": 86,
+      "endgame": 98,
+      "tactics": 91,
+      "blunders": 100,
+      "conversion": 80
+    },
     "n": {
-      "opening": 22,
-      "middlegame": 21,
-      "endgame": 8,
-      "tactics": 22,
-      "blunders": 22,
-      "conversion": 15
+      "opening": 60,
+      "middlegame": 60,
+      "endgame": 13,
+      "tactics": 60,
+      "blunders": 60,
+      "conversion": 36
     }
   },
   {
     "from": 1700,
     "to": 1999,
     "label": "1700–1999",
-    "games": 22,
+    "games": 60,
     "median": {
-      "opening": 93,
-      "middlegame": 78,
-      "endgame": 94,
-      "tactics": 58,
+      "opening": 90,
+      "middlegame": 81,
+      "endgame": 90,
+      "tactics": 85,
       "blunders": 100,
-      "conversion": 63
+      "conversion": 75
     },
     "p25": {
-      "opening": 86,
-      "middlegame": 72,
-      "endgame": 93,
-      "tactics": 30,
-      "blunders": 76,
+      "opening": 85,
+      "middlegame": 76,
+      "endgame": 70,
+      "tactics": 66,
+      "blunders": 83,
       "conversion": 50
     },
     "p75": {
-      "opening": 96,
-      "middlegame": 92,
+      "opening": 94,
+      "middlegame": 90,
       "endgame": 95,
-      "tactics": 73,
+      "tactics": 97,
       "blunders": 100,
-      "conversion": 74
+      "conversion": 86
     },
     "n": {
-      "opening": 22,
-      "middlegame": 22,
-      "endgame": 6,
-      "tactics": 22,
-      "blunders": 22,
-      "conversion": 11
+      "opening": 60,
+      "middlegame": 59,
+      "endgame": 12,
+      "tactics": 60,
+      "blunders": 60,
+      "conversion": 46
     }
   },
   {
     "from": 2000,
     "to": 9999,
     "label": "2000+",
-    "games": 22,
+    "games": 60,
     "median": {
       "opening": 96,
-      "middlegame": 91,
+      "middlegame": 87,
       "endgame": 89,
-      "tactics": 82,
+      "tactics": 93,
       "blunders": 100,
-      "conversion": 36
+      "conversion": 82
     },
     "p25": {
       "opening": 95,
       "middlegame": 84,
-      "endgame": 87,
-      "tactics": 55,
+      "endgame": 86,
+      "tactics": 86,
       "blunders": 100,
-      "conversion": 0
+      "conversion": 72
     },
     "p75": {
       "opening": 97,
-      "middlegame": 93,
-      "endgame": 93,
+      "middlegame": 91,
+      "endgame": 94,
       "tactics": 100,
       "blunders": 100,
-      "conversion": 70
+      "conversion": 91
     },
     "n": {
-      "opening": 22,
-      "middlegame": 22,
-      "endgame": 16,
-      "tactics": 22,
-      "blunders": 22,
-      "conversion": 11
+      "opening": 60,
+      "middlegame": 60,
+      "endgame": 31,
+      "tactics": 60,
+      "blunders": 60,
+      "conversion": 30
     }
   }
 ];

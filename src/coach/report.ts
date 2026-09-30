@@ -19,9 +19,9 @@ export const AXES = [
   { id: 'opening', label: 'Opening', hint: 'Getting pieces out and claiming the centre.' },
   { id: 'middlegame', label: 'Middlegame', hint: 'Play once the pieces are out and the position is sharp.' },
   { id: 'endgame', label: 'Endgame', hint: 'Technique once most of the pieces are traded off.' },
-  { id: 'tactics', label: 'Tactics', hint: 'Spotting and avoiding forks, pins, hanging pieces and mates.' },
+  { id: 'tactics', label: 'Tactics', hint: 'Win probability handed over to forks, pins, hanging pieces and mates, per 40-move game.' },
   { id: 'blunders', label: 'Blunders', hint: 'How often a move threw away a large chunk of the game. Each blunder in a 40-move game costs 20 points.' },
-  { id: 'conversion', label: 'Converting', hint: 'Turning a winning position into a win.' },
+  { id: 'conversion', label: 'Converting', hint: 'How much of a winning position you handed back, per 40-move game.' },
 ] as const;
 
 export type AxisId = (typeof AXES)[number]['id'];
@@ -32,7 +32,7 @@ const MIN_MOVES = 4;
 /** Win percentage above which a position counts as one you ought to be winning. */
 const WINNING = 70;
 
-/** A game's worth of moves, so blunder rate can be quoted per game rather than as a fraction. */
+/** A game's worth of moves, so every rate is quoted per game rather than as a fraction. */
 const TYPICAL_GAME = 40;
 
 /** What one blunder in a game of that length costs on the scale. */
@@ -42,9 +42,25 @@ function isTactical(tag: MotifTag): boolean {
   return MOTIF_META[tag].family === 'tactics';
 }
 
-/** 100 down to 0 as win-probability points are thrown away. */
-function fromLoss(points: number): number {
-  return Math.max(0, Math.round(100 - points));
+/**
+ * Win probability a 40-move game can shed on one axis before it scores zero.
+ *
+ * The number has to come from somewhere, and an unbounded sum is not an
+ * option: clipped at zero, "a bit careless" and "catastrophic" become the same
+ * reading, and most games at the lower ratings sit on the floor. This value was
+ * chosen and then checked against the benchmark, which spreads across the range
+ * rather than piling up at either end.
+ */
+const FULL_COST = 200;
+
+/**
+ * A rate, not a total. Measured per typical-length game so a long game is not
+ * punished for being long, which is the same footing the blunder axis uses.
+ */
+function rateScore(lossPoints: number, moves: number): number {
+  if (moves <= 0) return 100;
+  const perGame = (lossPoints / moves) * TYPICAL_GAME;
+  return Math.max(0, Math.min(100, Math.round(100 - (perGame / FULL_COST) * 100)));
 }
 
 export type AxisScores = Record<AxisId, number | null>;
@@ -71,7 +87,7 @@ export function scoreGame(game: AnalysedGame, color: Color): AxisScores {
     opening: phaseScore('opening'),
     middlegame: phaseScore('middlegame'),
     endgame: phaseScore('endgame'),
-    tactics: mine.length < MIN_MOVES ? null : fromLoss(lostTo((m) => m.motifs.some(isTactical))),
+    tactics: mine.length < MIN_MOVES ? null : rateScore(lostTo((m) => m.motifs.some(isTactical)), mine.length),
     /*
      * A rate rather than a count, so a long game is not punished for being
      * long, expressed per typical-length game because "two blunders a game" is
@@ -82,9 +98,15 @@ export function scoreGame(game: AnalysedGame, color: Color): AxisScores {
       : Math.max(0, Math.round(
         100 - (mine.filter((m) => m.verdict === 'blunder').length / mine.length) * TYPICAL_GAME * PER_BLUNDER,
       )),
+    /*
+     * Divided by the whole game rather than by the winning moves alone: a
+     * player who was winning for five moves and threw it away should not be
+     * measured on a five-move denominator, which would read as a total
+     * collapse whatever they did next.
+     */
     conversion: winning.length < MIN_MOVES
       ? null
-      : fromLoss(winning.reduce((n, m) => n + m.winLoss, 0)),
+      : rateScore(winning.reduce((n, m) => n + m.winLoss, 0), mine.length),
   };
 }
 

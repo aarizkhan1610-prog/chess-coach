@@ -92,13 +92,35 @@ const many = (n: number, over: Partial<AnalysedMove> & { color: Color; phase: Ph
 /* ---- tactics responds to the right motifs ---- */
 {
   const clean = game(many(8, { color: 'w', phase: 'middlegame' }));
-  const forked = game([
-    ...many(7, { color: 'w', phase: 'middlegame' }),
-    move({ color: 'w', phase: 'middlegame', winLoss: 30, motifs: ['allowed-fork'] as MotifTag[] }),
-  ]);
   eq('a clean game scores full tactics', scoreGame(clean, 'w').tactics, 100);
-  eq('a fork costs tactics', scoreGame(forked, 'w').tactics, 70);
+
+  // Forty own moves losing forty win-percent to a fork: a fifth of the
+  // two-hundred-point scale, so a fifth off the score.
+  const forked = game([
+    ...many(39, { color: 'w', phase: 'middlegame' }),
+    move({ color: 'w', phase: 'middlegame', winLoss: 40, motifs: ['allowed-fork'] as MotifTag[] }),
+  ]);
+  eq('a fork costs tactics', scoreGame(forked, 'w').tactics, 80);
+
+  // The same damage over half as many moves is twice the rate.
+  const denser = game([
+    ...many(19, { color: 'w', phase: 'middlegame' }),
+    move({ color: 'w', phase: 'middlegame', winLoss: 40, motifs: ['allowed-fork'] as MotifTag[] }),
+  ]);
+  eq('tactics is a rate, not a total', scoreGame(denser, 'w').tactics, 60);
+
+  // And it no longer bottoms out the moment a game goes badly: the old scale
+  // clipped everything past a hundred points to zero, so careless and
+  // catastrophic read the same.
+  const rough = game([
+    ...many(36, { color: 'w', phase: 'middlegame' }),
+    ...many(4, { color: 'w', phase: 'middlegame', winLoss: 30, motifs: ['allowed-fork'] as MotifTag[] }),
+  ]);
+  const ruinous = game(many(40, { color: 'w', phase: 'middlegame', winLoss: 30, motifs: ['allowed-fork'] as MotifTag[] }));
+  eq('a rough game still scores above the floor', scoreGame(rough, 'w').tactics, 40);
+  eq('a ruinous one reaches it', scoreGame(ruinous, 'w').tactics, 0);
   eq('a fork that was not a blunder leaves the blunder axis alone', scoreGame(forked, 'w').blunders, 100);
+  eq('a tactical error does not touch the phase scores', scoreGame(forked, 'w').opening, null);
 }
 
 /* ---- blunder rate ---- */
