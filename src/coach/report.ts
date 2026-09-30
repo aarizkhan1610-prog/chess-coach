@@ -256,6 +256,45 @@ export function aggregateScores(games: AnalysedGame[], minGames = 3): AxisScores
   return out;
 }
 
+export interface LossBreakdown {
+  /** Win-probability points the player gave away across every game. */
+  total: number;
+  byPhase: Record<Phase, number>;
+  /** Loss the motif detector could not attribute to any named cause. */
+  unattributed: number;
+}
+
+/**
+ * Where the win probability actually went.
+ *
+ * The phase totals are the whole of it, so they add up to `total` by
+ * construction. The named causes do not: a move can lose ground without any
+ * motif firing, and pretending otherwise would quietly inflate every cause's
+ * share. `unattributed` is that remainder, shown rather than hidden.
+ */
+export function lossBreakdown(games: AnalysedGame[], attributed: number): LossBreakdown {
+  const byPhase: Record<Phase, number> = { opening: 0, middlegame: 0, endgame: 0 };
+  let total = 0;
+
+  for (const game of games) {
+    for (const move of game.moves) {
+      if (move.color !== game.hero) continue;
+      byPhase[move.phase] += move.winLoss;
+      total += move.winLoss;
+    }
+  }
+
+  return {
+    total: Math.round(total),
+    byPhase: {
+      opening: Math.round(byPhase.opening),
+      middlegame: Math.round(byPhase.middlegame),
+      endgame: Math.round(byPhase.endgame),
+    },
+    unattributed: Math.max(0, Math.round(total - attributed)),
+  };
+}
+
 /** Per-game accuracy in the order they were played, for a trend. */
 export function accuracyOverTime(games: AnalysedGame[]): { id: string; label: string; accuracy: number }[] {
   return [...games]

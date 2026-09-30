@@ -194,7 +194,7 @@ export function BasicsSectionPage({ id }: { id: string }) {
         </div>
         {tour.showFen && (
           <figure className="basics-figure">
-            <Board fen={tour.showFen} movable="none" highlights={reach} coordinates />
+            <Board fen={tour.showFen} movable="none" highlights={reach} />
             <figcaption className="tiny faint">
               {tour.showFrom
                 ? `Every square it can reach from ${tour.showFrom}.`

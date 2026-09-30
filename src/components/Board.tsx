@@ -33,7 +33,6 @@ export interface BoardProps {
   lastMove?: { from: Square; to: Square } | null;
   arrows?: BoardArrow[];
   highlights?: BoardHighlight[];
-  coordinates?: boolean;
   /** Dots on legal destinations for the selected piece. */
   showLegal?: boolean;
   /** Extra class on the wrapper. */
@@ -63,7 +62,6 @@ export function Board({
   lastMove,
   arrows = [],
   highlights = [],
-  coordinates = true,
   showLegal = true,
   className,
 }: BoardProps) {
@@ -254,9 +252,8 @@ export function Board({
           );
         })}
 
-        {/* coordinates */}
-        {coordinates &&
-          Array.from({ length: 8 }, (_, i) => {
+        {/* Always drawn: a beginner reading "Nf3" needs to find f3. */}
+        {Array.from({ length: 8 }, (_, i) => {
             const fileChar = String.fromCharCode(97 + (orientation === 'w' ? i : 7 - i));
             const rankChar = String(orientation === 'w' ? 8 - i : i + 1);
             const lightFile = (i + (orientation === 'w' ? 1 : 0)) % 2 === 0;

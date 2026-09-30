@@ -121,7 +121,7 @@ export function TrainBrowser({
   return (
     <div className="train">
       <div className="train-board">
-        <Board fen={fen} orientation={orientation} lastMove={last} movable="none" coordinates />
+        <Board fen={fen} orientation={orientation} lastMove={last} movable="none" />
         <div className="train-caption">
           <span className={shown?.caption ? '' : 'mono'}>{caption}</span>
           {shown?.orientation === 'b' && <Pill>Black&rsquo;s view</Pill>}

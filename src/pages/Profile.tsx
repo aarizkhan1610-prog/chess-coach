@@ -5,7 +5,7 @@ import { examplesFor } from '../coach/lessons';
 import { ReportTabs } from '../components/ReportTabs';
 import { RadarChart } from '../components/RadarChart';
 import { TrendChart } from '../components/TrendChart';
-import { accuracyOverTime, aggregateScores, comparableAxes, pickBand } from '../coach/report';
+import { accuracyOverTime, aggregateScores, comparableAxes, lossBreakdown, pickBand } from '../coach/report';
 import { ratingFromGames } from '../coach/recommend';
 import { BENCHMARK, BENCHMARK_BUILT } from '../coach/benchmark';
 import { Board } from '../components/Board';
@@ -14,6 +14,43 @@ import { MOTIF_META, type MotifTag, type MoveVerdict } from '../types';
 import { VERDICT_META } from '../chess/evaluation';
 
 const VERDICTS: MoveVerdict[] = ['brilliant', 'great', 'best', 'good', 'book', 'inaccuracy', 'mistake', 'blunder'];
+
+/**
+ * One slice of the win probability given away.
+ *
+ * Bars are drawn against the same total throughout, so a phase bar and a cause
+ * bar of equal length mean equal damage. Scaling each column to its own biggest
+ * value would make the smallest category look as serious as the largest.
+ */
+function LossBar({ label, points, of, accuracy, muted, onOpen }: {
+  label: string;
+  points: number;
+  of: number;
+  accuracy?: number;
+  muted?: boolean;
+  onOpen?: () => void;
+}) {
+  const share = of > 0 ? Math.round((points / of) * 100) : 0;
+  const body = (
+    <>
+      <div className="loss-row-head">
+        <span className="loss-label">{label}</span>
+        <span className="loss-points mono">{points}</span>
+        <span className="loss-share tiny faint">{share}%</span>
+      </div>
+      <div className="loss-track">
+        <div className={`loss-fill ${muted ? 'muted' : ''}`} style={{ width: `${Math.min(100, share)}%` }} />
+      </div>
+      {accuracy !== undefined && accuracy > 0 && (
+        <div className="tiny faint">{accuracy}% accurate here</div>
+      )}
+    </>
+  );
+
+  return onOpen
+    ? <button className="loss-row is-link" onClick={onOpen}>{body}</button>
+    : <div className="loss-row">{body}</div>;
+}
 
 export function ProfilePage() {
   const games = useGames();
@@ -45,6 +82,24 @@ export function ProfilePage() {
   const band = pickBand(BENCHMARK, rating);
   const drawn = band ? comparableAxes(shape, band.band) : [];
   const trend = accuracyOverTime(games);
+
+  /* Where the win probability went: every phase, then every named cause. */
+  const attributed = profile.weaknesses.reduce((n, w) => n + w.winLoss, 0);
+  const loss = lossBreakdown(games, attributed);
+  /*
+   * The named causes are the head of a long tail, so a top-few list leaves most
+   * of the loss unaccounted for and the percentages summing to something like
+   * forty. The remainder — smaller habits plus everything no motif could
+   * explain — is shown as its own bar, so the column adds up to the whole.
+   */
+  const named = profile.weaknesses
+    .map((w) => ({ key: w.tag as string, label: MOTIF_META[w.tag].label, points: Math.round(w.winLoss) }))
+    .filter((c) => c.points > 0)
+    .slice(0, 6);
+  const rest = Math.max(0, loss.total - named.reduce((n, c) => n + c.points, 0));
+  const causes = rest > 0
+    ? [...named, { key: 'rest', label: 'Smaller habits, and moves with no single cause', points: rest }]
+    : named;
 
   return (
     <div>
@@ -133,6 +188,47 @@ export function ProfilePage() {
           </Card>
         )}
 
+        <Card title="Where your win probability goes">
+          <div className="small dim" style={{ marginBottom: 12 }}>
+            You have given away <b>{loss.total}</b> win-probability points across {profile.games}{' '}
+            game{profile.games === 1 ? '' : 's'} — about {Math.round(loss.total / Math.max(1, profile.games))}{' '}
+            a game. Here is where it went.
+          </div>
+
+          <div className="loss-split">
+            <div>
+              <div className="tiny faint loss-head">BY PHASE</div>
+              {(['opening', 'middlegame', 'endgame'] as const).map((ph) => (
+                <LossBar
+                  key={ph}
+                  label={ph}
+                  points={loss.byPhase[ph]}
+                  of={loss.total}
+                  accuracy={profile.accuracyByPhase[ph]}
+                />
+              ))}
+            </div>
+
+            <div>
+              <div className="tiny faint loss-head">BY CAUSE</div>
+              {causes.length === 0 ? (
+                <div className="small dim">Nothing repeating enough to name yet.</div>
+              ) : (
+                causes.map((c) => (
+                  <LossBar
+                    key={c.key}
+                    label={c.label}
+                    points={c.points}
+                    of={loss.total}
+                    muted={c.key === 'rest'}
+                    onOpen={c.key === 'rest' ? undefined : () => navigate(`/coach/${c.key}`)}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+        </Card>
+
         <Card title="Accuracy by phase">
           <div className="stats-row">
             {(['opening', 'middlegame', 'endgame'] as const).map((p) => (
@@ -188,7 +284,7 @@ export function ProfilePage() {
                           {examples.map((ex) => (
                             <Card key={`${ex.gameId}-${ex.ply}`}>
                               <div style={{ maxWidth: 200, margin: '0 auto 10px' }}>
-                                <Board fen={ex.fenBefore} orientation={ex.ply % 2 === 0 ? 'w' : 'b'} coordinates={false} movable="none" />
+                                <Board fen={ex.fenBefore} orientation={ex.ply % 2 === 0 ? 'w' : 'b'} movable="none" />
                               </div>
                               <div className="small">
                                 You played <span className="mono bold" style={{ color: 'var(--v-blunder)' }}>{ex.san}</span>

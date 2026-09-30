@@ -115,7 +115,6 @@ export function DrillBoard({ drill, onSolved }: { drill: Drill; onSolved: () => 
           onMove={(m) => onMove({ from: m.from, to: m.to, promotion: m.promotion })}
           lastMove={lastMove}
           highlights={highlights}
-          coordinates
         />
       </div>
 

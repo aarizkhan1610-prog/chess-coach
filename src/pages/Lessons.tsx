@@ -227,7 +227,7 @@ function StepView({ step, tag, games }: { step: LessonStep; tag: MotifTag; games
           {examples.map((ex) => (
             <Card key={`${ex.gameId}-${ex.ply}`}>
               <div style={{ maxWidth: 190, margin: '0 auto 10px' }}>
-                <Board fen={ex.fenBefore} orientation={ex.ply % 2 === 0 ? 'w' : 'b'} coordinates={false} movable="none" />
+                <Board fen={ex.fenBefore} orientation={ex.ply % 2 === 0 ? 'w' : 'b'} movable="none" />
               </div>
               <div className="small">
                 You played <span className="mono bold" style={{ color: 'var(--v-blunder)' }}>{ex.san}</span>
@@ -247,6 +247,8 @@ function PositionStep({ step }: { step: Extract<LessonStep, { kind: 'position' }
   const [fen, setFen] = useState(step.fen);
   const [state, setState] = useState<'idle' | 'right' | 'wrong'>('idle');
   const [tried, setTried] = useState<string | null>(null);
+  /** The piece to move, once asked for. Every other board in the app offers this. */
+  const [hint, setHint] = useState<string | null>(null);
 
   const orientation = step.orientation ?? (new Chess(step.fen).turn() as 'w' | 'b');
   const target = step.solution[0].replace(/[+#]/g, '');
@@ -255,6 +257,29 @@ function PositionStep({ step }: { step: Extract<LessonStep, { kind: 'position' }
     setFen(step.fen);
     setState('idle');
     setTried(null);
+    setHint(null);
+  }
+
+  /* The square the answer starts from, worked out by playing it on a copy. */
+  function showHint() {
+    const board = new Chess(step.fen);
+    try {
+      setHint(board.move(step.solution[0]).from);
+    } catch {
+      setHint(null);
+    }
+  }
+
+  /* The way out. A lesson you cannot leave is not a lesson. */
+  function reveal() {
+    const board = new Chess(step.fen);
+    try {
+      board.move(step.solution[0]);
+      setFen(board.fen());
+      setState('right');
+    } catch {
+      /* Every lesson position is engine-verified at build time. */
+    }
   }
 
   return (
@@ -265,6 +290,7 @@ function PositionStep({ step }: { step: Extract<LessonStep, { kind: 'position' }
             fen={fen}
             orientation={orientation}
             movable={state === 'right' ? 'none' : 'both'}
+            highlights={hint && state !== 'right' ? [{ square: hint, color: 'var(--accent)' }] : []}
             onMove={(m) => {
               if (m.san.replace(/[+#]/g, '') === target) {
                 setFen(m.fenAfter);
@@ -278,7 +304,19 @@ function PositionStep({ step }: { step: Extract<LessonStep, { kind: 'position' }
         </div>
         <div>
           <p>{step.prompt}</p>
-          {state === 'idle' && <div className="small dim">Make the move on the board.</div>}
+          {state !== 'right' && (
+            <>
+              <div className="small dim">
+                {hint ? `Move the piece on ${hint}.` : 'Make the move on the board.'}
+              </div>
+              <div className="row wrap" style={{ gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
+                <button className="btn sm" onClick={showHint} disabled={Boolean(hint)}>
+                  {hint ? 'Hint shown' : 'Hint'}
+                </button>
+                <button className="btn sm ghost" onClick={reveal}>Show me the answer</button>
+              </div>
+            </>
+          )}
           {state === 'wrong' && (
             <div className="banner error">
               <div>

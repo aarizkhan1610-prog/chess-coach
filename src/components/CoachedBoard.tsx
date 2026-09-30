@@ -124,7 +124,6 @@ export function CoachView({
           lastMove={coach.lastMove}
           highlights={highlights}
           arrows={arrows}
-          coordinates
         />
         <div className="train-caption">
           <span>
