@@ -20,7 +20,7 @@ export const AXES = [
   { id: 'middlegame', label: 'Middlegame', hint: 'Play once the pieces are out and the position is sharp.' },
   { id: 'endgame', label: 'Endgame', hint: 'Technique once most of the pieces are traded off.' },
   { id: 'tactics', label: 'Tactics', hint: 'Win probability handed over to forks, pins, hanging pieces and mates, per 40-move game.' },
-  { id: 'blunders', label: 'Blunders', hint: 'How often a move threw away a large chunk of the game. Each blunder in a 40-move game costs 20 points.' },
+  { id: 'errors', label: 'Serious errors', hint: 'How often a move threw away a real chunk of the game. Blunders count once, mistakes count half, and one blunder in a 40-move game costs 20 points.' },
   { id: 'conversion', label: 'Converting', hint: 'How much of a winning position you handed back, per 40-move game.' },
 ] as const;
 
@@ -37,6 +37,16 @@ const TYPICAL_GAME = 40;
 
 /** What one blunder in a game of that length costs on the scale. */
 const PER_BLUNDER = 20;
+
+/**
+ * A mistake counts half.
+ *
+ * Blunders alone put the median at 100 in four of five rating bands, because
+ * the median game at any rating contains none — the axis was measuring
+ * correctly and saying nothing. Mistakes are the same failure one notch down
+ * and there are enough of them per game for the statistic to move.
+ */
+const MISTAKE_WEIGHT = 0.5;
 
 function isTactical(tag: MotifTag): boolean {
   return MOTIF_META[tag].family === 'tactics';
@@ -93,10 +103,14 @@ export function scoreGame(game: AnalysedGame, color: Color): AxisScores {
      * long, expressed per typical-length game because "two blunders a game" is
      * a thing a person can picture and "0.05" is not.
      */
-    blunders: mine.length < MIN_MOVES
+    errors: mine.length < MIN_MOVES
       ? null
       : Math.max(0, Math.round(
-        100 - (mine.filter((m) => m.verdict === 'blunder').length / mine.length) * TYPICAL_GAME * PER_BLUNDER,
+        100 - (
+          (mine.filter((m) => m.verdict === 'blunder').length
+            + mine.filter((m) => m.verdict === 'mistake').length * MISTAKE_WEIGHT)
+          / mine.length
+        ) * TYPICAL_GAME * PER_BLUNDER,
       )),
     /*
      * Divided by the whole game rather than by the winning moves alone: a

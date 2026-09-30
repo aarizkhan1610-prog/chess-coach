@@ -119,7 +119,7 @@ const many = (n: number, over: Partial<AnalysedMove> & { color: Color; phase: Ph
   const ruinous = game(many(40, { color: 'w', phase: 'middlegame', winLoss: 30, motifs: ['allowed-fork'] as MotifTag[] }));
   eq('a rough game still scores above the floor', scoreGame(rough, 'w').tactics, 40);
   eq('a ruinous one reaches it', scoreGame(ruinous, 'w').tactics, 0);
-  eq('a fork that was not a blunder leaves the blunder axis alone', scoreGame(forked, 'w').blunders, 100);
+  eq('a fork that was not a blunder leaves the blunder axis alone', scoreGame(forked, 'w').errors, 100);
   eq('a tactical error does not touch the phase scores', scoreGame(forked, 'w').opening, null);
 }
 
@@ -131,29 +131,58 @@ const many = (n: number, over: Partial<AnalysedMove> & { color: Color; phase: Ph
     ...many(39, { color: 'w', phase: 'middlegame' }),
     move({ color: 'w', phase: 'middlegame', verdict: 'blunder', winLoss: 45 }),
   ]);
-  eq('one blunder a game', scoreGame(oneIn40, 'w').blunders, 80);
+  eq('one blunder a game', scoreGame(oneIn40, 'w').errors, 80);
 
   const oneIn20 = game([
     ...many(19, { color: 'w', phase: 'middlegame' }),
     move({ color: 'w', phase: 'middlegame', verdict: 'blunder', winLoss: 45 }),
   ]);
-  eq('two blunders a game', scoreGame(oneIn20, 'w').blunders, 60);
+  eq('two blunders a game', scoreGame(oneIn20, 'w').errors, 60);
 
   // A rate, not a count: the same proportion over twice the moves scores the same.
   const twoIn40 = game([
     ...many(38, { color: 'w', phase: 'middlegame' }),
     ...many(2, { color: 'w', phase: 'middlegame', verdict: 'blunder', winLoss: 45 }),
   ]);
-  eq('a longer game is not punished for its length', scoreGame(twoIn40, 'w').blunders, 60);
+  eq('a longer game is not punished for its length', scoreGame(twoIn40, 'w').errors, 60);
 
   const wreck2 = game(many(20, { color: 'w', phase: 'middlegame', verdict: 'blunder', winLoss: 45 }));
-  eq('the blunder axis cannot go below zero', scoreGame(wreck2, 'w').blunders, 0);
+  eq('the blunder axis cannot go below zero', scoreGame(wreck2, 'w').errors, 0);
 
   const theirs = game([
     ...many(10, { color: 'w', phase: 'middlegame' }),
     ...many(10, { color: 'b', phase: 'middlegame', verdict: 'blunder', winLoss: 45 }),
   ]);
-  eq('the opponent\u2019s blunders are not yours', scoreGame(theirs, 'w').blunders, 100);
+  eq('the opponent\u2019s blunders are not yours', scoreGame(theirs, 'w').errors, 100);
+
+  /*
+   * Mistakes count half. Blunders alone left the median at the ceiling in four
+   * of five rating bands, because the median game contains none of them.
+   */
+  const twoMistakes = game([
+    ...many(38, { color: 'w', phase: 'middlegame' }),
+    ...many(2, { color: 'w', phase: 'middlegame', verdict: 'mistake', winLoss: 22 }),
+  ]);
+  eq('two mistakes weigh the same as one blunder', scoreGame(twoMistakes, 'w').errors, 80);
+
+  const oneBlunder = game([
+    ...many(39, { color: 'w', phase: 'middlegame' }),
+    move({ color: 'w', phase: 'middlegame', verdict: 'blunder', winLoss: 45 }),
+  ]);
+  eq('and score the same as one blunder does', scoreGame(oneBlunder, 'w').errors, scoreGame(twoMistakes, 'w').errors);
+
+  const both = game([
+    ...many(36, { color: 'w', phase: 'middlegame' }),
+    ...many(2, { color: 'w', phase: 'middlegame', verdict: 'blunder', winLoss: 45 }),
+    ...many(2, { color: 'w', phase: 'middlegame', verdict: 'mistake', winLoss: 22 }),
+  ]);
+  eq('blunders and mistakes add up', scoreGame(both, 'w').errors, 40);
+
+  const soft = game([
+    ...many(36, { color: 'w', phase: 'middlegame' }),
+    ...many(4, { color: 'w', phase: 'middlegame', verdict: 'inaccuracy', winLoss: 12 }),
+  ]);
+  eq('inaccuracies are not serious errors', scoreGame(soft, 'w').errors, 100);
 }
 
 /* ---- every axis stays inside the scale ---- */
@@ -180,7 +209,7 @@ const many = (n: number, over: Partial<AnalysedMove> & { color: Color; phase: Ph
 {
   // Six games: every one scores the opening, only four reach an endgame.
   const scored: AxisScores[] = [60, 65, 70, 75, 80, 85].map((v, i) => ({
-    opening: v, middlegame: v, tactics: v, blunders: v,
+    opening: v, middlegame: v, tactics: v, errors: v,
     endgame: i < 4 ? v : null,
     conversion: null,
   }));
@@ -203,15 +232,15 @@ const many = (n: number, over: Partial<AnalysedMove> & { color: Color; phase: Ph
 /* ---- the chart only draws what both sides can answer ---- */
 {
   const band = summarise(BANDS[1], Array.from({ length: 6 }, () => ({
-    opening: 70, middlegame: 70, endgame: 70, tactics: 70, blunders: 70, conversion: null,
+    opening: 70, middlegame: 70, endgame: 70, tactics: 70, errors: 70, conversion: null,
   })));
   const scores: AxisScores = {
-    opening: 80, middlegame: 80, endgame: null, tactics: 80, blunders: 80, conversion: 80,
+    opening: 80, middlegame: 80, endgame: null, tactics: 80, errors: 80, conversion: 80,
   };
   const drawn = comparableAxes(scores, band).map((a) => a.id);
   eq('an axis the game missed is dropped', drawn.includes('endgame'), false);
   eq('an axis the benchmark cannot answer is dropped', drawn.includes('conversion'), false);
-  eq('the rest are drawn', drawn, ['opening', 'middlegame', 'tactics', 'blunders']);
+  eq('the rest are drawn', drawn, ['opening', 'middlegame', 'tactics', 'errors']);
 }
 
 /* ---- a thin band is not a benchmark ---- */

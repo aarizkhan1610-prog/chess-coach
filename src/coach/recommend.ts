@@ -37,7 +37,7 @@ const AXIS_LESSON: Record<AxisId, MotifTag> = {
   middlegame: 'lost-the-initiative',
   endgame: 'endgame-technique',
   tactics: 'hanging-piece',
-  blunders: 'hanging-piece',
+  errors: 'hanging-piece',
   conversion: 'converting-advantage',
 };
 

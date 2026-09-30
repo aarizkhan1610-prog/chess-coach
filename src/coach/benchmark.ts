@@ -13,36 +13,36 @@ export const BENCHMARK: BandStats[] = [
     "label": "Under 1100",
     "games": 60,
     "median": {
-      "opening": 75,
-      "middlegame": 78,
-      "endgame": 94,
-      "tactics": 65,
-      "blunders": 100,
-      "conversion": 54
+      "opening": 78,
+      "middlegame": 79,
+      "endgame": 86,
+      "tactics": 69,
+      "errors": 78,
+      "conversion": 42
     },
     "p25": {
       "opening": 69,
-      "middlegame": 62,
-      "endgame": 91,
-      "tactics": 31,
-      "blunders": 65,
-      "conversion": 17
+      "middlegame": 67,
+      "endgame": 78,
+      "tactics": 36,
+      "errors": 46,
+      "conversion": 27
     },
     "p75": {
-      "opening": 85,
-      "middlegame": 90,
+      "opening": 86,
+      "middlegame": 83,
       "endgame": 96,
-      "tactics": 82,
-      "blunders": 100,
-      "conversion": 77
+      "tactics": 80,
+      "errors": 88,
+      "conversion": 51
     },
     "n": {
       "opening": 60,
-      "middlegame": 59,
+      "middlegame": 57,
       "endgame": 13,
       "tactics": 60,
-      "blunders": 60,
-      "conversion": 22
+      "errors": 60,
+      "conversion": 21
     }
   },
   {
@@ -51,36 +51,36 @@ export const BENCHMARK: BandStats[] = [
     "label": "1100–1399",
     "games": 60,
     "median": {
-      "opening": 82,
-      "middlegame": 72,
-      "endgame": 90,
-      "tactics": 59,
-      "blunders": 83,
-      "conversion": 49
+      "opening": 85,
+      "middlegame": 79,
+      "endgame": 93,
+      "tactics": 76,
+      "errors": 81,
+      "conversion": 62
     },
     "p25": {
-      "opening": 78,
-      "middlegame": 59,
-      "endgame": 87,
-      "tactics": 22,
-      "blunders": 53,
-      "conversion": 21
+      "opening": 79,
+      "middlegame": 68,
+      "endgame": 89,
+      "tactics": 57,
+      "errors": 59,
+      "conversion": 31
     },
     "p75": {
-      "opening": 91,
-      "middlegame": 84,
-      "endgame": 97,
-      "tactics": 87,
-      "blunders": 100,
-      "conversion": 76
+      "opening": 92,
+      "middlegame": 89,
+      "endgame": 96,
+      "tactics": 92,
+      "errors": 100,
+      "conversion": 80
     },
     "n": {
       "opening": 60,
-      "middlegame": 58,
-      "endgame": 11,
+      "middlegame": 59,
+      "endgame": 14,
       "tactics": 60,
-      "blunders": 60,
-      "conversion": 26
+      "errors": 60,
+      "conversion": 29
     }
   },
   {
@@ -91,34 +91,34 @@ export const BENCHMARK: BandStats[] = [
     "median": {
       "opening": 88,
       "middlegame": 77,
-      "endgame": 94,
-      "tactics": 70,
-      "blunders": 100,
-      "conversion": 63
+      "endgame": 93,
+      "tactics": 76,
+      "errors": 80,
+      "conversion": 66
     },
     "p25": {
-      "opening": 82,
-      "middlegame": 66,
-      "endgame": 92,
-      "tactics": 51,
-      "blunders": 69,
-      "conversion": 40
+      "opening": 77,
+      "middlegame": 63,
+      "endgame": 87,
+      "tactics": 48,
+      "errors": 55,
+      "conversion": 38
     },
     "p75": {
       "opening": 93,
-      "middlegame": 86,
-      "endgame": 98,
-      "tactics": 91,
-      "blunders": 100,
-      "conversion": 80
+      "middlegame": 89,
+      "endgame": 96,
+      "tactics": 93,
+      "errors": 100,
+      "conversion": 81
     },
     "n": {
       "opening": 60,
       "middlegame": 60,
-      "endgame": 13,
+      "endgame": 23,
       "tactics": 60,
-      "blunders": 60,
-      "conversion": 36
+      "errors": 60,
+      "conversion": 35
     }
   },
   {
@@ -127,36 +127,36 @@ export const BENCHMARK: BandStats[] = [
     "label": "1700–1999",
     "games": 60,
     "median": {
-      "opening": 90,
-      "middlegame": 81,
-      "endgame": 90,
-      "tactics": 85,
-      "blunders": 100,
-      "conversion": 75
+      "opening": 91,
+      "middlegame": 79,
+      "endgame": 93,
+      "tactics": 83,
+      "errors": 83,
+      "conversion": 64
     },
     "p25": {
       "opening": 85,
-      "middlegame": 76,
-      "endgame": 70,
-      "tactics": 66,
-      "blunders": 83,
-      "conversion": 50
+      "middlegame": 73,
+      "endgame": 88,
+      "tactics": 70,
+      "errors": 67,
+      "conversion": 49
     },
     "p75": {
-      "opening": 94,
-      "middlegame": 90,
+      "opening": 93,
+      "middlegame": 87,
       "endgame": 95,
-      "tactics": 97,
-      "blunders": 100,
-      "conversion": 86
+      "tactics": 95,
+      "errors": 100,
+      "conversion": 78
     },
     "n": {
       "opening": 60,
       "middlegame": 59,
       "endgame": 12,
       "tactics": 60,
-      "blunders": 60,
-      "conversion": 46
+      "errors": 60,
+      "conversion": 38
     }
   },
   {
@@ -169,7 +169,7 @@ export const BENCHMARK: BandStats[] = [
       "middlegame": 87,
       "endgame": 89,
       "tactics": 93,
-      "blunders": 100,
+      "errors": 98,
       "conversion": 82
     },
     "p25": {
@@ -177,7 +177,7 @@ export const BENCHMARK: BandStats[] = [
       "middlegame": 84,
       "endgame": 86,
       "tactics": 86,
-      "blunders": 100,
+      "errors": 87,
       "conversion": 72
     },
     "p75": {
@@ -185,7 +185,7 @@ export const BENCHMARK: BandStats[] = [
       "middlegame": 91,
       "endgame": 94,
       "tactics": 100,
-      "blunders": 100,
+      "errors": 100,
       "conversion": 91
     },
     "n": {
@@ -193,7 +193,7 @@ export const BENCHMARK: BandStats[] = [
       "middlegame": 60,
       "endgame": 31,
       "tactics": 60,
-      "blunders": 60,
+      "errors": 60,
       "conversion": 30
     }
   }
