@@ -60,6 +60,8 @@ export interface CoachApi {
   previewing: boolean;
   /** The move under consideration, in SAN. */
   candidate: string | null;
+  /** True when the move under consideration ends the game. */
+  endsGame: boolean;
   result: string | null;
   tryMove: (move: { from: string; to: string; promotion?: string }) => void;
   keep: () => void;
@@ -92,11 +94,16 @@ export function useCoach(options: CoachOptions = {}): CoachApi {
   const [candidate, setCandidate] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
+  const [endsGame, setEndsGame] = useState(false);
 
   /** Where `undo` returns to. */
   const before = useRef<Snapshot | null>(null);
   /** The last move played into the current position, for recapture detection. */
   const incoming = useRef<{ to: string; captured?: string } | null>(null);
+  /** The learner's own moves, kept so a piece moved twice can be spotted. */
+  const mine = useRef<{ from: string; to: string }[]>([]);
+  /** The move awaiting a decision, promoted into `mine` only if it is kept. */
+  const pending = useRef<{ from: string; to: string } | null>(null);
   /** Analysis of the current position, started as soon as it appears. */
   const prefetch = useRef<{ fen: string; job: Promise<PositionAnalysis | null> } | null>(null);
   const alive = useRef(true);
@@ -182,8 +189,11 @@ export function useCoach(options: CoachOptions = {}): CoachApi {
     const snapshot: Snapshot = { fen: fenBefore, lastMove };
     const incomingNow = incoming.current;
 
+    const over = board.isCheckmate() || board.isStalemate() || board.isDraw();
     before.current = snapshot;
+    pending.current = { from: played.from, to: played.to };
     setCandidate(played.san);
+    setEndsGame(over);
     setPhase('thinking');
     // Show the move straight away. Waiting for the engine before the piece
     // lands makes the board feel broken, however short the wait is.
@@ -191,7 +201,6 @@ export function useCoach(options: CoachOptions = {}): CoachApi {
     setLastMove({ from: played.from, to: played.to });
 
     (async () => {
-      const over = board.isCheckmate() || board.isStalemate() || board.isDraw();
       const pre = prefetch.current?.fen === fenBefore ? prefetch.current.job : analyse(fenBefore);
       const [beforeAnalysis, afterAnalysis] = await Promise.all([
         pre,
@@ -209,6 +218,7 @@ export function useCoach(options: CoachOptions = {}): CoachApi {
           lastMove: incomingNow
             ? { to: incomingNow.to, captured: incomingNow.captured as never }
             : null,
+          moverMoves: [...mine.current],
         }));
       } catch {
         setExplanation(null);
@@ -225,6 +235,9 @@ export function useCoach(options: CoachOptions = {}): CoachApi {
     setExplanation(null);
     setCandidate(null);
     setPreview(null);
+    setEndsGame(false);
+    if (pending.current) mine.current = [...mine.current, pending.current];
+    pending.current = null;
     before.current = null;
     incoming.current = null;
 
@@ -245,6 +258,8 @@ export function useCoach(options: CoachOptions = {}): CoachApi {
     setExplanation(null);
     setCandidate(null);
     setPreview(null);
+    setEndsGame(false);
+    pending.current = null;
     before.current = null;
     setPhase('yours');
   }, []);
@@ -278,8 +293,11 @@ export function useCoach(options: CoachOptions = {}): CoachApi {
     setCandidate(null);
     setPreview(null);
     setResult(null);
+    setEndsGame(false);
     before.current = null;
     incoming.current = null;
+    pending.current = null;
+    mine.current = [];
     prefetch.current = null;
   }, [startFen]);
 
@@ -293,6 +311,7 @@ export function useCoach(options: CoachOptions = {}): CoachApi {
     explanation,
     previewing: preview !== null,
     candidate,
+    endsGame,
     result,
     tryMove,
     keep,

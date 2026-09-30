@@ -6,6 +6,8 @@ import { DrillBoard } from '../components/DrillBoard';
 import { Pill, navigate } from '../components/ui';
 import { useEngineStatus } from '../engine/useEngine';
 import { RULES, TOURS, findBasic, type Tour } from '../coach/basics';
+import { GuidedGameBoard } from '../components/GuidedGame';
+import { OPERA } from '../coach/guidedGame';
 import { useStore } from '../state/store';
 
 /**
@@ -71,6 +73,18 @@ export function BasicsPage() {
         <h2>3 · Play a game</h2>
         <ul className="train-list">
           <li>
+            <button className={`train-row ${done[`guided-${OPERA.id}`] ? 'selected' : ''}`} onClick={() => navigate('/basics/game')}>
+              <span className="train-row-text">
+                <span className="train-row-label">{OPERA.title}</span>
+                <span className="train-row-detail">
+                  {OPERA.subtitle} Every move explained before you play it, and the checkmate left to you.
+                </span>
+              </span>
+              <span className="train-row-meta">{done[`guided-${OPERA.id}`] ? 'Done' : '17 moves'}</span>
+              <span className="train-row-arrow" aria-hidden>{'→'}</span>
+            </button>
+          </li>
+          <li>
             <button className="train-row" onClick={() => navigate('/basics/play')}>
               <span className="train-row-text">
                 <span className="train-row-label">Play with a coach</span>
@@ -84,6 +98,25 @@ export function BasicsPage() {
           </li>
         </ul>
       </section>
+    </div>
+  );
+}
+
+export function BasicsGamePage() {
+  const { status } = useEngineStatus();
+
+  return (
+    <div>
+      <div className="page-head">
+        <button className="btn sm ghost" onClick={() => navigate('/basics')}>{'← Back to the basics'}</button>
+        <h1>{OPERA.title}</h1>
+        <p className="sub">{OPERA.subtitle}</p>
+        <div className="guided-blurb">
+          {OPERA.blurb.map((para) => <p key={para.slice(0, 24)}>{para}</p>)}
+        </div>
+        {status === 'loading' && <p className="tiny faint">Warming up the engine…</p>}
+      </div>
+      <GuidedGameBoard game={OPERA} />
     </div>
   );
 }

@@ -41,6 +41,47 @@ their destinations retarget to match. The beginner scaffolding stands down on
 its own: the core track yields to the personal plan, and the first-repertoire
 panel gives way to the openings you actually play.
 
+## Starting from nothing
+
+There is a separate track for people who do not play yet, reached from the
+banner above the pathways or from **Basics** in the sidebar. It is deliberately
+not a fifth pathway: the four above all assume you can already play.
+
+- **How the pieces move** — six sections, each with a diagram of every square
+  the piece can reach and drills to try it. Wrong moves are not rejected;
+  blocking them would teach the shape of the drill rather than the shape of the
+  piece, so the task stays on screen with a hint and a walk-through on request.
+- **The rules people get wrong** — checkmate, stalemate, castling, en passant.
+- **The Opera Game** — Morphy in Paris in 1858, played from his side. You are
+  asked what the position needs, you play whatever you think, and you are told
+  how it compares with what was played. The last two moves carry no suggestion
+  at all, because by then White has a forced mate in two.
+- **Play with a coach** — a real game against a deliberately weak opponent with
+  every move you make explained.
+
+Neither of the first two stages touches the engine. None of those questions
+need a search, and a first lesson should not wait on a 1.7 MB download.
+
+### Explaining a move
+
+Game review already works out *that* a move was bad and gives it a motif, but a
+motif is a category rather than an explanation: `hanging-piece` tells a new
+player nothing. The beginner track names the pieces and squares involved —
+"your bishop on c4 has nothing defending it; your opponent plays dxc4 and wins
+a bishop" — and offers to play the punishment out on the board, because
+watching the piece disappear lands harder than a sentence saying it will.
+
+It also explains moves that are *good*, which had to be written from scratch:
+motif detection only ever fires on mistakes. Praise is offered only after the
+faults have had their say, or the coach congratulates you for developing a
+knight to a square where it is taken for free.
+
+Two things the evaluation alone gets wrong for a beginner, both corrected here:
+a move like `Ke2` costs a fraction of a pawn, so no threshold will ever object
+to giving up castling — those are flagged on the habit instead of the score.
+And a queen sacrifice that forces mate is not a blunder, so mate outranks
+material outright.
+
 ## What it does
 
 **Import and analyse.** Type your Lichess or Chess.com username and it pulls
@@ -160,7 +201,12 @@ to get wrong:
 - `lesson-positions.test.ts` runs every position used in a lesson past the engine
   and fails if the stated answer is not the best move;
 - `e2e.test.ts` drives real PGNs through the real engine and asserts on the
-  blunders, motifs and refutations that come out.
+  blunders, motifs and refutations that come out;
+- `basics.test.ts` replays every beginner drill through the same function the
+  drill board uses, so it cannot pass while the real thing behaves differently;
+- `guided.test.ts` replays the Opera Game, checks every recommended move
+  against the engine, and proves the promise the design rests on — that a
+  forced mate exists from the point where the suggestions stop.
 
 ## Layout
 
@@ -168,12 +214,13 @@ to get wrong:
 src/
   chess/       rules, evaluation maths, board geometry, SEE, motif detection
   engine/      Stockfish worker wrapper, analysis pipeline, React hooks
-  coach/       weakness profiling, lessons, puzzle generation, spaced repetition
+  coach/       weakness profiling, lessons, puzzle generation, spaced repetition,
+               beginner drills, move explanation in plain English
   openings/    27 opening courses and opening detection
   components/  board (with hand-drawn SVG pieces), eval bar and graph, pathway
                definitions, primitives
   pages/       landing, import, review, profile, lessons, puzzles, openings,
-               settings
+               basics, settings
 scripts/       starter-puzzle generator (npm run build:puzzles)
 tests/         see above
 ```

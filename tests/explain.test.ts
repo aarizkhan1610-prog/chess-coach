@@ -47,8 +47,10 @@ const BEGINNER = ['e4','h6','d4','a6','Nf3','g5','Bc4','b5','Bxb5','axb5','Nxg5'
 async function explainAt(line: string[], move: string, fen?: string): Promise<Explanation> {
   const c = fen ? new Chess(fen) : new Chess();
   let last: Move | null = null;
-  for (const san of line) last = c.move(san);
+  const sofar: Move[] = [];
+  for (const san of line) { last = c.move(san); sofar.push(last); }
   const fenBefore = c.fen();
+  const mover = c.turn();
   const played = c.move(move);
   const uci = `${played.from}${played.to}${played.promotion ?? ''}`;
   const over = c.isCheckmate() || c.isStalemate() || c.isDraw();
@@ -58,6 +60,7 @@ async function explainAt(line: string[], move: string, fen?: string): Promise<Ex
     before: await analyse(engine, fenBefore),
     after: over ? null : await analyse(engine, c.fen()),
     lastMove: last ? { to: last.to, captured: last.captured } : null,
+    moverMoves: sofar.filter((m) => m.color === mover).map((m) => ({ from: m.from, to: m.to })),
   });
 }
 
@@ -176,6 +179,13 @@ const CASES: Case[] = [
     wants: ['king-safety'],
     notTone: ['bad', 'losing'],
     contains: ['castle'],
+  },
+  {
+    name: 'moving the same piece twice',
+    line: ['e4', 'e5', 'Nf3', 'Nc6'], move: 'Ng1',
+    wants: ['development'],
+    notTone: ['losing'],
+    contains: ['already moved'],
   },
   {
     name: 'a rook pawn is called out',

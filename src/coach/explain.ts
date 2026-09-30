@@ -188,6 +188,12 @@ export interface ExplainInput {
    */
   lastMove?: { to: Square; captured?: PieceType } | null;
   /**
+   * Where the mover's own pieces have been this game. Without it there is no
+   * way to notice the commonest opening habit of all — shuffling one piece
+   * around while the rest sit at home.
+   */
+  moverMoves?: { from: Square; to: Square }[];
+  /**
    * Beginner calibration keeps quiet about small positional drift and judges
    * mostly on material and mate. Standard uses the same bands as game review.
    */
@@ -226,6 +232,8 @@ interface Ctx {
   playedSee: number;
   /** Points the mover already gave up on this square, when the move is a recapture. */
   recaptured: number;
+  /** The mover's earlier moves this game, oldest first. */
+  moverMoves: { from: Square; to: Square }[];
   /** The opponent's punishing move, already played on `afterRefC`. */
   ref: Move | null;
   afterRefC: Chess | null;
@@ -589,6 +597,20 @@ function cautions(c: Ctx): ExplainPoint[] {
     });
   }
 
+  if (
+    c.played.piece !== 'p'
+    && c.played.piece !== 'k'
+    && developedMinors(c.beforeC, c.mover) < 4
+    && c.moverMoves.some((m) => m.to === c.played.from)
+  ) {
+    out.push({
+      code: 'development',
+      text: `That ${NAME[c.played.piece as PieceType]} has already moved once, and you still have pieces sitting at home.`,
+      principle: 'In the opening, move each piece once. A second move for a piece already in play is a move your opponent spends on a piece that is not.',
+      squares: [c.played.to],
+    });
+  }
+
   const file = fileOf(c.played.to);
   if (c.played.piece === 'p' && (file === 0 || file === 7) && developedMinors(c.beforeC, c.mover) < 2) {
     out.push({
@@ -654,6 +676,7 @@ export function explainMove(i: ExplainInput): Explanation {
 
   const ctx: Ctx = {
     beforeC, afterC, mover, opp, played, playedSee, recaptured,
+    moverMoves: i.moverMoves ?? [],
     ref, afterRefC, refGain,
     best, afterBestC,
     bestSee: best ? seeMove(beforeC, { from: best.from, to: best.to, promotion: best.promotion }) : 0,

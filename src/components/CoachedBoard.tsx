@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Board, type BoardHighlight } from './Board';
 import { Pill, Spinner } from './ui';
-import { useCoach, type CoachOptions } from '../coach/useCoach';
+import { useCoach, type CoachApi, type CoachOptions } from '../coach/useCoach';
 import { useStore } from '../state/store';
 import type { Tone } from '../coach/explain';
 import type { Color } from '../types';
@@ -13,6 +13,10 @@ import type { Color } from '../types';
  * a move, and never made to live with one either: every verdict comes with the
  * option to take it back, so trying a bad move on purpose is a cheap way to
  * find out why it is bad.
+ *
+ * `CoachView` takes the coach rather than creating one, so a caller that needs
+ * to know what was played — the guided game, comparing each move against the
+ * one Morphy chose — can own the state and still render this.
  */
 
 const TONE: Record<Tone, { label: string; cls: string }> = {
@@ -24,18 +28,48 @@ const TONE: Record<Tone, { label: string; cls: string }> = {
   losing: { label: 'Loses', cls: 'tone-bad' },
 };
 
-export interface CoachedBoardProps extends CoachOptions {
-  /** Shown above the board while it is the learner's turn. */
+export interface CoachViewProps {
+  coach: CoachApi;
+  /** Shown while it is the learner's turn. */
   prompt: ReactNode;
   orientation?: Color;
-  /** Rendered under the coach panel, e.g. a "next" button. */
+  userSide?: Color | 'both';
+  /** Replaces the standing "play anything" note under the prompt. */
+  idle?: ReactNode;
+  /** Slotted into the verdict card, under the coach's own words. */
+  verdictExtra?: ReactNode;
+  /** Extra buttons beside take-back and keep. */
+  actions?: ReactNode;
+  /**
+   * Replaces what "keep it" does. The guided game needs to advance its own
+   * place in the script at the same moment the move is committed, and two
+   * buttons that both commit a move is one button too many.
+   */
+  onKeep?: () => void;
+  keepLabel?: string;
+  /** "Take it back" means "back to the game" once there is a game to go back to. */
+  undoLabel?: string;
+  /** Rendered under the panel. */
   footer?: ReactNode;
+  /** Replaces the end-of-game card. */
+  over?: ReactNode;
 }
 
-export function CoachedBoard({ prompt, orientation = 'w', footer, ...options }: CoachedBoardProps) {
-  const coach = useCoach(options);
+export function CoachView({
+  coach,
+  prompt,
+  orientation = 'w',
+  userSide = 'w',
+  idle,
+  verdictExtra,
+  actions,
+  onKeep,
+  keepLabel,
+  undoLabel,
+  footer,
+  over,
+}: CoachViewProps) {
   const markTaught = useStore((s) => s.markTaught);
-
   const { explanation: x, phase } = coach;
 
   /*
@@ -75,7 +109,7 @@ export function CoachedBoard({ prompt, orientation = 'w', footer, ...options }: 
 
   /* The move that put the learner back on turn, so the caption can report it. */
   const reply =
-    options.userSide !== 'both' && phase === 'yours' && coach.history.length > 0
+    userSide !== 'both' && phase === 'yours' && coach.history.length > 0
       ? coach.history[coach.history.length - 1]
       : null;
 
@@ -85,7 +119,7 @@ export function CoachedBoard({ prompt, orientation = 'w', footer, ...options }: 
         <Board
           fen={coach.shownFen}
           orientation={orientation}
-          movable={phase === 'yours' ? (options.userSide ?? 'w') : 'none'}
+          movable={phase === 'yours' ? userSide : 'none'}
           onMove={(m) => coach.tryMove({ from: m.from, to: m.to, promotion: m.promotion })}
           lastMove={coach.lastMove}
           highlights={highlights}
@@ -122,9 +156,11 @@ export function CoachedBoard({ prompt, orientation = 'w', footer, ...options }: 
         {phase === 'yours' && !x && (
           <div className="coach-card coach-idle">
             <div className="coach-prompt">{prompt}</div>
-            <p className="small dim">
-              Play anything you like. Nothing is locked, and you can always take a move back.
-            </p>
+            {idle ?? (
+              <p className="small dim">
+                Play anything you like. Nothing is locked, and you can always take a move back.
+              </p>
+            )}
           </div>
         )}
 
@@ -159,14 +195,21 @@ export function CoachedBoard({ prompt, orientation = 'w', footer, ...options }: 
               </p>
             )}
 
+            {verdictExtra}
+
             <div className="row wrap coach-actions">
               {x.punish && (
                 <button className="btn sm" onClick={coach.togglePunishment}>
                   {coach.previewing ? 'Back' : 'Show me'}
                 </button>
               )}
-              <button className="btn sm" onClick={coach.undo}>Take it back</button>
-              <button className="btn primary sm" onClick={coach.keep}>Keep it</button>
+              {actions}
+              <button className="btn sm" onClick={coach.undo}>
+                {coach.endsGame ? 'Take it back' : undoLabel ?? 'Take it back'}
+              </button>
+              <button className="btn primary sm" onClick={onKeep ?? coach.keep}>
+                {keepLabel ?? (coach.endsGame ? 'Finish' : 'Keep it')}
+              </button>
             </div>
           </div>
         )}
@@ -179,12 +222,12 @@ export function CoachedBoard({ prompt, orientation = 'w', footer, ...options }: 
           </div>
         )}
 
-        {phase === 'over' && (
+        {phase === 'over' && (over ?? (
           <div className="coach-card">
             <p className="coach-headline">{coach.result}</p>
             <button className="btn sm" onClick={coach.reset}>Play it again</button>
           </div>
-        )}
+        ))}
 
         {coach.history.length > 0 && (
           <div className="coach-moves mono small dim">
@@ -195,5 +238,25 @@ export function CoachedBoard({ prompt, orientation = 'w', footer, ...options }: 
         {footer}
       </div>
     </div>
+  );
+}
+
+export interface CoachedBoardProps extends CoachOptions {
+  prompt: ReactNode;
+  orientation?: Color;
+  footer?: ReactNode;
+}
+
+/** Free play: creates its own coach and hands it straight to the view. */
+export function CoachedBoard({ prompt, orientation = 'w', footer, ...options }: CoachedBoardProps) {
+  const coach = useCoach(options);
+  return (
+    <CoachView
+      coach={coach}
+      prompt={prompt}
+      orientation={orientation}
+      userSide={options.userSide ?? 'w'}
+      footer={footer}
+    />
   );
 }

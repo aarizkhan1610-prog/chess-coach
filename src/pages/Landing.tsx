@@ -63,6 +63,23 @@ export function LandingPage() {
         <HeroPuzzle />
       </header>
 
+      {/*
+        * Deliberately not a fifth path card. The four paths all assume you can
+        * already play; this does not, so it is set apart rather than made a
+        * peer — and four choices stays four choices.
+        */}
+      <button className="beginner-banner" onClick={() => navigate('/basics')}>
+        <span className="beginner-mark" aria-hidden>{'♟'}</span>
+        <span className="beginner-text">
+          <span className="beginner-title">New to chess? Start here</span>
+          <span className="beginner-sub">
+            How the pieces move, the rules that catch everyone out, and a famous game played
+            move by move with the reasoning explained.
+          </span>
+        </span>
+        <span className="beginner-arrow" aria-hidden>{'→'}</span>
+      </button>
+
       <PathCards paths={paths} />
 
       <section className="features">
