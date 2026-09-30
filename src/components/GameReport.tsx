@@ -2,6 +2,8 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { RadarChart } from './RadarChart';
 import { MIN_SAMPLE, comparableAxes, pickBand, ratingIn, scoreGame, type AxisScores, type BandStats } from '../coach/report';
 import { BENCHMARK, BENCHMARK_BUILT } from '../coach/benchmark';
+import { recommendForGame } from '../coach/recommend';
+import { navigate } from './ui';
 import { useStore } from '../state/store';
 import type { AnalysedGame } from '../types';
 
@@ -49,6 +51,29 @@ function verdictLine(scores: AxisScores, band: BandStats): ReactNode {
   return <>Above typical for your rating on {name(best)}.</>;
 }
 
+/** Compact enough for the side panel: a reason, and one thing to do about it. */
+function NextSteps({ game }: { game: AnalysedGame }) {
+  const recs = useMemo(() => recommendForGame(game), [game]);
+  if (!recs.length) return null;
+
+  return (
+    <section className="report-next">
+      <h3 className="report-next-head">What to do about it</h3>
+      <ul className="rec-list">
+        {recs.map((rec) => (
+          <li key={rec.id}>
+            <button className="rec-row" onClick={() => navigate(rec.href)}>
+              <span className="rec-row-title">{rec.title}</span>
+              <span className="rec-row-why">{rec.why}</span>
+              <span className="rec-row-cta">{rec.cta} →</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 export function GameReport({ game, details }: { game: AnalysedGame; details: ReactNode }) {
   const [open, setOpen] = useState(false);
 
@@ -67,6 +92,7 @@ export function GameReport({ game, details }: { game: AnalysedGame; details: Rea
             ? 'This game has no rating in it and none is set, so there is nothing to compare against. Add one on the home page, or import from Lichess or Chess.com, which carry theirs.'
             : `There are not yet ${MIN_SAMPLE} benchmark games at your rating, so a comparison would be guesswork.`}
         </div>
+        <NextSteps game={game} />
         {details}
       </div>
     );
@@ -84,6 +110,8 @@ export function GameReport({ game, details }: { game: AnalysedGame; details: Rea
           thinly sampled to be a fair yardstick.
         </p>
       )}
+
+      <NextSteps game={game} />
 
       <details className="report-more" open={open} onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}>
         <summary>{open ? 'Hide the full breakdown' : 'Full breakdown'}</summary>

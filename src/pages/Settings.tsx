@@ -55,7 +55,9 @@ export function SettingsPage() {
                 onChange={(e) => {
                   const n = Number(e.target.value);
                   const ok = e.target.value !== '' && Number.isFinite(n) && n >= 100 && n <= 3200;
-                  setSettings({ rating: ok ? Math.round(n) : null, ratingAsked: true });
+                  // Clearing it puts the question back rather than leaving it
+                  // permanently answered with nothing.
+                  setSettings({ rating: ok ? Math.round(n) : null, ratingAsked: ok });
                 }}
               />
               <span className="tiny faint">

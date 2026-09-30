@@ -3,7 +3,7 @@ import { AXES, bandFor, pickBand, type AxisId } from './report';
 import { BENCHMARK } from './benchmark';
 import { buildProfile } from './weaknesses';
 import { lessonFor } from './lessons';
-import { ALL_OPENINGS } from '../openings';
+import { ALL_OPENINGS, openingById } from '../openings';
 
 /*
  * What to point someone at.
@@ -166,6 +166,69 @@ export function recommend(games: AnalysedGame[], rating: number | null, limit = 
   }
 
   return out.slice(0, limit);
+}
+
+/**
+ * What to do about *this* game.
+ *
+ * Deliberately narrower than the home page, which speaks for a whole history.
+ * Here the reasons are drawn from the game on screen — the habit that cost the
+ * most in it, the opening it was actually played in — because that is the
+ * question someone has while looking at it, and a recommendation that could
+ * have been made before they opened the page is not worth the space.
+ */
+export function recommendForGame(game: AnalysedGame): Recommendation[] {
+  const out: Recommendation[] = [];
+  const mine = game.moves.filter((m) => m.color === game.hero);
+  const errors = mine.filter((m) => ['inaccuracy', 'mistake', 'blunder'].includes(m.verdict));
+
+  /* The cause that cost the most here, splitting a move's cost between its causes. */
+  const cost = new Map<MotifTag, { points: number; moves: number }>();
+  for (const move of errors) {
+    const causes = move.motifs.filter((t) => MOTIF_META[t].family !== 'phase');
+    for (const tag of causes) {
+      const prev = cost.get(tag) ?? { points: 0, moves: 0 };
+      cost.set(tag, { points: prev.points + move.winLoss / causes.length, moves: prev.moves + 1 });
+    }
+  }
+  const worst = [...cost.entries()].sort((a, b) => b[1].points - a[1].points)[0];
+  if (worst) {
+    const [tag, stat] = worst;
+    const link = lessonLink(tag);
+    out.push({
+      id: `game-lesson:${tag}`,
+      title: link.title,
+      why: `${MOTIF_META[tag].label} cost you ${Math.round(stat.points)} points in this game alone, over ${stat.moves} move${stat.moves === 1 ? '' : 's'}.`,
+      href: link.href,
+      cta: 'Read the lesson',
+      source: 'your-games',
+    });
+  }
+
+  if (game.openingId && openingById(game.openingId)) {
+    out.push({
+      id: `game-opening:${game.openingId}`,
+      title: game.openingName ?? 'This opening',
+      why: `You left the book on move ${Math.floor(game.bookPlies / 2) + 1}. The course covers the ideas from there.`,
+      href: `/openings/${game.openingId}`,
+      cta: 'Learn the ideas',
+      source: 'your-games',
+    });
+  }
+
+  const replayable = mine.filter((m) => m.verdict === 'blunder' || m.verdict === 'mistake').length;
+  if (replayable) {
+    out.push({
+      id: 'game-rewind',
+      title: 'Replay what you missed',
+      why: `${replayable} position${replayable === 1 ? '' : 's'} in this game where the move you wanted was there to be found.`,
+      href: '/puzzles/rewind',
+      cta: 'Try them',
+      source: 'your-games',
+    });
+  }
+
+  return out;
 }
 
 /** A rating already known from the games, so the question need not be asked. */
