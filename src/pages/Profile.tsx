@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useGames, useStore } from '../state/store';
 import { buildProfile, coachSummary } from '../coach/weaknesses';
 import { examplesFor } from '../coach/lessons';
+import { ReportTabs } from '../components/ReportTabs';
 import { Board } from '../components/Board';
 import { Card, Empty, Meter, Pill, Stat, accuracyColor, formatDate, navigate } from '../components/ui';
 import { MOTIF_META, type MotifTag, type MoveVerdict } from '../types';
@@ -35,12 +36,14 @@ export function ProfilePage() {
   return (
     <div>
       <div className="page-head">
-        <h1>Your weaknesses</h1>
+        <h1>Your report</h1>
         <div className="sub">
           Built from {profile.moves} of your own moves across {profile.games} game{profile.games === 1 ? '' : 's'}.
           {profile.games < 5 && ' Import a few more for a more reliable picture.'}
         </div>
       </div>
+
+      <ReportTabs active="overview" count={games.length} />
 
       <div className="grid" style={{ gap: 16 }}>
         <Card>
@@ -116,7 +119,7 @@ export function ProfilePage() {
                     <button className="btn sm ghost" onClick={() => setOpen(isOpen ? null : w.tag)}>
                       {isOpen ? 'Hide' : 'Examples'}
                     </button>
-                    <a className="btn sm" href={`#/lessons/${w.tag}`}>Lesson</a>
+                    <a className="btn sm primary" href={`#/coach/${w.tag}`}>Train this</a>
                   </div>
                   {isOpen && (
                     <div className="fade-in" style={{ padding: '4px 0 16px 36px' }}>

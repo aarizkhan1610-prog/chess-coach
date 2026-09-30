@@ -54,12 +54,6 @@ export function OpeningsPage() {
   const games = useGames();
   const [filter, setFilter] = useState('');
 
-  const played = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const g of games) if (g.openingId && openingById(g.openingId)) counts.set(g.openingId, (counts.get(g.openingId) ?? 0) + 1);
-    return counts;
-  }, [games]);
-
   const q = filter.trim().toLowerCase();
 
   const searchNodes = useMemo(() => {
@@ -72,22 +66,7 @@ export function OpeningsPage() {
   const browseNodes = useMemo<TrainNode[]>(() => {
     const nodes: TrainNode[] = [];
 
-    if (played.size) {
-      nodes.push({
-        id: 'played',
-        label: 'The openings you actually play',
-        detail: 'Taken from the games you have imported',
-        meta: `${played.size}`,
-        children: [...played.entries()]
-          .sort((a, b) => b[1] - a[1])
-          .flatMap(([id, n]) => {
-            const o = openingById(id);
-            return o ? [{ ...openingNode(o, openingStep[id] ?? 0), meta: `${n} game${n === 1 ? '' : 's'}` }] : [];
-          }),
-      });
-    }
-
-    nodes.push({
+        nodes.push({
       id: 'first',
       label: 'Build a first repertoire',
       detail: 'Three decisions and you have a complete set of openings',
@@ -121,7 +100,7 @@ export function OpeningsPage() {
       });
     }
     return nodes;
-  }, [groups, played, openingStep]);
+  }, [groups, openingStep]);
 
   return (
     <div>

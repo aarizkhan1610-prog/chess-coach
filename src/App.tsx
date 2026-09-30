@@ -1,7 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo } from 'react';
 import { useGames, useHydrated, useStore } from './state/store';
 import { useRoute, Spinner } from './components/ui';
-import { LandingPage } from './pages/Landing';
+import { CoachPage } from './pages/Coach';
 
 /*
  * Routes load on demand.
@@ -11,7 +11,8 @@ import { LandingPage } from './pages/Landing';
  * which that page uses. The landing route is imported eagerly because it is
  * what most visits start on; the rest arrive when asked for.
  */
-const CoachPage = lazy(() => import('./pages/Coach').then((m) => ({ default: m.CoachPage })));
+const CoachTrainPage = lazy(() => import('./pages/CoachTrain').then((m) => ({ default: m.CoachTrainPage })));
+const CoachMixedPage = lazy(() => import('./pages/CoachTrain').then((m) => ({ default: m.CoachMixedPage })));
 const BasicsPage = lazy(() => import('./pages/Basics').then((m) => ({ default: m.BasicsPage })));
 const BasicsPlayPage = lazy(() => import('./pages/Basics').then((m) => ({ default: m.BasicsPlayPage })));
 const BasicsGamePage = lazy(() => import('./pages/Basics').then((m) => ({ default: m.BasicsGamePage })));
@@ -29,22 +30,22 @@ const OpeningsPage = lazy(() => import('./pages/Openings').then((m) => ({ defaul
 const OpeningPage = lazy(() => import('./pages/Openings').then((m) => ({ default: m.OpeningPage })));
 
 import { buildProfile } from './coach/weaknesses';
-import type { MotifTag } from './types';
+import { MOTIF_META, type MotifTag } from './types';
 
 /*
- * The two things the app is for — being coached, and having your games read —
- * and nothing else competing with them.
+ * Two destinations, because the app does two things: it reads your games, and
+ * it coaches you on what it finds. There is no home page — one existed purely
+ * to say what to do next, which is the coach's job, and having it there made
+ * the app look like it had three features when it has two.
  *
  * Lessons, puzzles and openings are deliberately absent. They are worth
- * reaching when something in your own play points at them, not as four more
- * places to browse before you have played anything; their routes stay live so
- * every recommendation still opens.
+ * reaching when something in your own play points at them, not as places to
+ * browse before you have played anything; their routes stay live so every
+ * recommendation still opens.
  */
 const NAV = [
-  { path: '/', icon: '⌂', label: 'Home' },
-  { path: '/coach', icon: '◎', label: 'Coach' },
-  { path: '/games', icon: '♜', label: 'Games' },
-  { path: '/profile', icon: '◔', label: 'Weaknesses' },
+  { path: '/', icon: '◎', label: 'Coach', match: ['', 'coach'] },
+  { path: '/report', icon: '◔', label: 'Report', match: ['report', 'profile', 'games', 'game'] },
 ];
 const LEARN = { path: '/basics', icon: '◇', label: 'Learn to play' };
 
@@ -106,12 +107,12 @@ export default function App() {
           <a
             key={item.path}
             href={`#${item.path}`}
-            className={`nav-item ${route === item.path || (item.path === '/games' && section === 'game') ? 'active' : ''}`}
+            className={`nav-item ${item.match.includes(section) ? 'active' : ''}`}
           >
             <span className="nav-icon">{item.icon}</span>
             <span>{item.label}</span>
-            {item.path === '/games' && games.length > 0 && <span className="nav-badge">{games.length}</span>}
-            {item.path === '/profile' && weaknessCount > 0 && <span className="nav-badge">{weaknessCount}</span>}
+            {item.label === 'Coach' && weaknessCount > 0 && <span className="nav-badge">{weaknessCount}</span>}
+            {item.label === 'Report' && games.length > 0 && <span className="nav-badge">{games.length}</span>}
           </a>
         ))}
 
@@ -125,6 +126,10 @@ export default function App() {
         </a>
 
         <div className="sidebar-foot">
+          <a href="#/import" className={`nav-item ${section === 'import' ? 'active' : ''}`}>
+            <span className="nav-icon">{'↓'}</span>
+            <span>Import games</span>
+          </a>
           <a href="#/settings" className={`nav-item ${section === 'settings' ? 'active' : ''}`}>
             <span className="nav-icon">{'⚙'}</span>
             <span>Settings</span>
@@ -173,9 +178,15 @@ function Routes({ parts }: { parts: string[] }) {
   switch (section) {
     case undefined:
     case 'start':
-      return <LandingPage />;
-    case 'coach':
       return <CoachPage />;
+    case 'coach':
+      if (!arg) return <CoachPage />;
+      // Guard before treating the segment as a motif, so /coach/mixed is not
+      // mistaken for a tag and every unknown id falls back rather than crashing.
+      if (arg === 'mixed') return <CoachMixedPage />;
+      return arg in MOTIF_META ? <CoachTrainPage tag={arg as MotifTag} /> : <CoachPage />;
+    case 'report':
+      return <ProfilePage />;
     case 'basics':
       if (!arg) return <BasicsPage />;
       if (arg === 'play') return <BasicsPlayPage />;
@@ -198,6 +209,6 @@ function Routes({ parts }: { parts: string[] }) {
     case 'settings':
       return <SettingsPage />;
     default:
-      return <LandingPage />;
+      return <CoachPage />;
   }
 }

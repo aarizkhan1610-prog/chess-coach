@@ -41,11 +41,18 @@ const AXIS_LESSON: Record<AxisId, MotifTag> = {
   conversion: 'converting-advantage',
 };
 
-function lessonLink(tag: MotifTag): { title: string; href: string } {
+/*
+ * Anything shaped like a weakness lands in the coach, never straight in the
+ * library. The lesson is one of four things the coach offers for a habit — the
+ * positions from your own games come first — so sending someone to the lesson
+ * alone skips the training and makes the advice look like it came from a
+ * filing cabinet rather than from a coach who read your games.
+ */
+function weaknessLink(tag: MotifTag): { title: string; href: string } {
   const lesson = lessonFor(tag);
   return {
     title: lesson ? lesson.title : MOTIF_META[tag].label,
-    href: `/lessons/${tag}`,
+    href: `/coach/${tag}`,
   };
 }
 
@@ -69,13 +76,13 @@ export function recommend(games: AnalysedGame[], rating: number | null, limit = 
   if (games.length) {
     const profile = buildProfile(games);
     for (const weakness of profile.weaknesses.slice(0, limit)) {
-      const link = lessonLink(weakness.tag);
+      const link = weaknessLink(weakness.tag);
       out.push({
         id: `weakness:${weakness.tag}`,
         title: link.title,
         why: `${MOTIF_META[weakness.tag].label} has cost you ${Math.round(weakness.perGame)} points a game across ${weakness.gamesAffected} of your games.`,
         href: link.href,
-        cta: 'Work on it',
+        cta: 'Train it',
         source: 'your-games',
       });
     }
@@ -117,13 +124,13 @@ export function recommend(games: AnalysedGame[], rating: number | null, limit = 
     const weakest = weakestAt(rating);
     if (weakest) {
       const tag = AXIS_LESSON[weakest.axis.id];
-      const link = lessonLink(tag);
+      const link = weaknessLink(tag);
       out.push({
         id: `band:${weakest.axis.id}`,
         title: link.title,
         why: `Across real games at ${bandFor(rating).label}, ${weakest.axis.label.toLowerCase()} is the weakest part of the game — a median of ${weakest.median} out of 100.`,
         href: link.href,
-        cta: 'Start here',
+        cta: 'Train it',
         source: 'your-rating',
       });
       out.push({
@@ -194,13 +201,13 @@ export function recommendForGame(game: AnalysedGame): Recommendation[] {
   const worst = [...cost.entries()].sort((a, b) => b[1].points - a[1].points)[0];
   if (worst) {
     const [tag, stat] = worst;
-    const link = lessonLink(tag);
+    const link = weaknessLink(tag);
     out.push({
       id: `game-lesson:${tag}`,
       title: link.title,
       why: `${MOTIF_META[tag].label} cost you ${Math.round(stat.points)} points in this game alone, over ${stat.moves} move${stat.moves === 1 ? '' : 's'}.`,
       href: link.href,
-      cta: 'Read the lesson',
+      cta: 'Train it',
       source: 'your-games',
     });
   }

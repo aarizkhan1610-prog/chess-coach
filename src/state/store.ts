@@ -63,6 +63,8 @@ interface AppState {
   taught: Record<string, boolean>;
   /** Beginner drills finished, by drill id. */
   basicsDone: Record<string, boolean>;
+  /** Coach positions worked through, keyed `${gameId}:${ply}`. */
+  coachSpotsDone: Record<string, boolean>;
   sessions: SessionRecord[];
   totals: { attempted: number; solved: number; bestStreak: number };
 
@@ -78,6 +80,7 @@ interface AppState {
   setOpeningQuizBest: (id: string, score: number) => void;
   markTaught: (code: string) => void;
   markBasicDone: (id: string) => void;
+  markSpotDone: (key: string) => void;
   addSession: (s: SessionRecord) => void;
 }
 
@@ -106,6 +109,7 @@ export const useStore = create<AppState>()(
       openingQuizBest: {},
       taught: {},
       basicsDone: {},
+      coachSpotsDone: {},
       sessions: [],
       totals: { attempted: 0, solved: 0, bestStreak: 0 },
 
@@ -160,6 +164,9 @@ export const useStore = create<AppState>()(
 
       setOpeningQuizBest: (id, score) =>
         set((s) => ({ openingQuizBest: { ...s.openingQuizBest, [id]: Math.max(score, s.openingQuizBest[id] ?? 0) } })),
+
+      markSpotDone: (key) =>
+        set((s) => (s.coachSpotsDone[key] ? {} : { coachSpotsDone: { ...s.coachSpotsDone, [key]: true } })),
 
       markBasicDone: (id) =>
         set((s) => (s.basicsDone[id] ? {} : { basicsDone: { ...s.basicsDone, [id]: true } })),

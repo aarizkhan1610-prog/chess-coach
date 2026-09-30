@@ -3,6 +3,7 @@ import { useStore, useGames } from '../state/store';
 import { buildProfile } from '../coach/weaknesses';
 import { Card, Empty, Pill, accuracyColor, formatDate, navigate, resultBadge } from '../components/ui';
 import { VERDICT_META } from '../chess/evaluation';
+import { ReportTabs } from '../components/ReportTabs';
 
 export function GamesPage() {
   const games = useGames();
@@ -29,7 +30,7 @@ export function GamesPage() {
       <div className="page-head">
         <div className="row">
           <div>
-            <h1>Games</h1>
+            <h1>Your report</h1>
             <div className="sub">
               {games.length} analysed · {profile.accuracy}% average accuracy ·
               {' '}{profile.verdicts.blunder} blunder{profile.verdicts.blunder === 1 ? '' : 's'} in total
@@ -44,6 +45,7 @@ export function GamesPage() {
             Delete all
           </button>
         </div>
+        <ReportTabs active="games" count={games.length} />
       </div>
 
       <Card className="pad-0">

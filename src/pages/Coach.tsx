@@ -1,112 +1,154 @@
 import { useMemo, useState } from 'react';
-import { CoachedBoard } from '../components/CoachedBoard';
 import { Pill, navigate } from '../components/ui';
-import { useEngineStatus } from '../engine/useEngine';
-import { coachSpots, spotReason } from '../coach/fromGames';
-import { useGames } from '../state/store';
+import { RatingPrompt } from '../components/RatingPrompt';
+import { WeaknessRow } from '../components/WeaknessRow';
+import { RecommendationCards } from '../components/Recommendations';
+import { buildProfile, coachSummary } from '../coach/weaknesses';
+import { recommend, ratingFromGames } from '../coach/recommend';
+import { coachSpots } from '../coach/fromGames';
+import { useGames, useStore } from '../state/store';
 
 /*
- * The coach, working on the player's own games.
+ * The coach, and the first thing the app shows.
  *
- * The board opens where a game actually went wrong and answers whatever is
- * played next — including the move that was played at the time, which is often
- * the most useful thing to try first. Nothing is graded; the point is to find
- * out what the options do, which a puzzle cannot tell you because a puzzle has
- * already decided what the answer is.
+ * There is no separate home page. The owner could not tell what the app was
+ * for, and a front page whose entire job was "here is what to do next" was
+ * competing with the one feature whose job that is. Landing here means the
+ * first thing on screen is what to work on.
  *
- * Reviewing those same mistakes without playing anything is a separate thing
- * and stays where it was, on the game's own page.
+ * Deliberately no board and no engine on this page. It is the root route, and
+ * importing `CoachedBoard` here would chain to the explanation layer and the
+ * WASM engine, undoing the work that keeps first paint small. The training
+ * itself lives in `CoachTrain`, loaded only when a weakness is opened.
  */
 export function CoachPage() {
   const games = useGames();
-  const { status } = useEngineStatus();
-  const spots = useMemo(() => coachSpots(games), [games]);
-  const [index, setIndex] = useState(0);
+  const settings = useStore((s) => s.settings);
+  const setSettings = useStore((s) => s.setSettings);
+  const [editing, setEditing] = useState(false);
 
-  if (!spots.length) {
+  const known = useMemo(() => settings.rating ?? ratingFromGames(games), [settings.rating, games]);
+  const asked = settings.ratingAsked || known !== null;
+
+  const profile = useMemo(() => buildProfile(games), [games]);
+  const summary = useMemo(() => coachSummary(profile), [profile]);
+  const top = profile.weaknesses.slice(0, 3);
+
+  /*
+   * Ask for more than will be shown, because the first few are the same
+   * weaknesses that already have cards above — filtering them out of a list of
+   * three leaves nothing at all.
+   */
+  const rest = useMemo(
+    () => recommend(games, known, 6)
+      .filter((r) => !top.some((w) => r.id === `weakness:${w.tag}`))
+      .slice(0, 3),
+    [games, known, top],
+  );
+
+  const mixed = useMemo(() => coachSpots(games, 24), [games]);
+
+  if (!asked || editing) {
     return (
-      <div>
-        <div className="page-head">
-          <h1>Your coach</h1>
-          <p className="sub">
-            Play through the moments your own games turned, with someone explaining what each option does.
-          </p>
-        </div>
-        <div className="card">
-          <p style={{ marginTop: 0 }}>
-            {games.length === 0
-              ? 'There are no games to work from yet. Import a few and the coach will open at the positions where they went wrong.'
-              : 'Nothing to revisit — the analysis found no mistakes worth going back to in the games you have imported.'}
-          </p>
-          <div className="row wrap" style={{ gap: 'var(--space-2)' }}>
-            <button className="btn primary" onClick={() => navigate('/import')}>Import your games</button>
-            <button className="btn" onClick={() => navigate('/basics/play')}>Play a coached game instead</button>
-          </div>
-        </div>
-      </div>
+      <RatingPrompt
+        current={editing ? known : null}
+        onAnswer={(rating) => { setSettings({ rating, ratingAsked: true }); setEditing(false); }}
+      />
     );
   }
-
-  const spot = spots[index % spots.length];
-  const reason = spotReason(spot);
-  const when = new Date(spot.at).toLocaleDateString();
 
   return (
     <div>
       <div className="page-head">
         <h1>Your coach</h1>
+        <div className="row wrap home-facts">
+          {known !== null && <Pill>{`Rated ${known}`}</Pill>}
+          {games.length > 0 && <Pill>{`${games.length} game${games.length === 1 ? '' : 's'} read`}</Pill>}
+          <button className="btn ghost sm" onClick={() => setEditing(true)}>
+            {known === null ? 'Set a rating' : 'Change rating'}
+          </button>
+        </div>
         <p className="sub">
-          Positions from your own games, worst first. Play anything — you will be told what it does, and
-          you can always take it back.
+          {top.length
+            ? summary[0] ?? 'Here is what your games say to work on.'
+            : known !== null
+              ? `At ${known} I can tell you what players like you are weakest at. I cannot tell you about you until I have seen your games.`
+              : 'Nothing to go on yet, so start at the beginning.'}
         </p>
       </div>
 
-      <div className="row wrap coach-spot-head">
-        <Pill>{`${index + 1} of ${spots.length}`}</Pill>
-        <span className="small">
-          <b>vs {spot.opponent}</b>
-          <span className="dim">{` · move ${spot.moveNumber} · ${when}`}</span>
-        </span>
-        <div className="spacer" />
-        <button className="btn sm ghost" onClick={() => navigate(`/game/${spot.gameId}`)}>
-          See the whole game
-        </button>
-      </div>
-
-      <div className="coach-spot-why">
-        You played <span className="mono">{spot.played}</span> here and it cost{' '}
-        <b>{Math.round(spot.winLoss)} points</b> of win probability
-        {reason ? <> — the analysis put it down to {reason}</> : null}. Find something better.
-      </div>
-
-      {status === 'error' && (
-        <p className="tiny" style={{ color: 'var(--bad)' }}>
-          The engine did not start, so moves cannot be explained. Reloading usually fixes it.
-        </p>
+      {top.length > 0 && (
+        <section className="coach-block">
+          <h2>What to work on</h2>
+          <div className="coach-weaknesses">
+            {top.map((weakness, i) => (
+              <WeaknessRow
+                key={weakness.tag}
+                weakness={weakness}
+                rank={i + 1}
+                actions={
+                  <button className="btn primary sm" onClick={() => navigate(`/coach/${weakness.tag}`)}>
+                    Train this →
+                  </button>
+                }
+              />
+            ))}
+          </div>
+        </section>
       )}
 
-      <CoachedBoard
-        key={`${spot.gameId}:${spot.ply}`}
-        prompt="Your move. Try anything, including what you played at the time."
-        startFen={spot.fen}
-        userSide={spot.hero}
-        orientation={spot.hero}
-        opponentSkill={10}
-        footer={
-          <div className="row wrap coach-spot-nav">
-            <button className="btn sm" disabled={index === 0} onClick={() => setIndex((i) => i - 1)}>
-              {'← Previous'}
-            </button>
-            <button
-              className="btn primary sm"
-              disabled={index >= spots.length - 1}
-              onClick={() => setIndex((i) => i + 1)}
-            >
-              Next position →
-            </button>
+      {/*
+        * Games imported but nothing repeating in them — clean play, or too few
+        * games. It must not dead-end, so the mixed queue takes over.
+        */}
+      {games.length > 0 && top.length === 0 && (
+        <section className="coach-block">
+          <div className="card">
+            <p style={{ marginTop: 0 }}>
+              No habit is repeating often enough to train yet — either you are playing cleanly, or there is
+              not enough here to be sure. Five or more games gives a much clearer picture.
+            </p>
+            <div className="row wrap" style={{ gap: 'var(--space-2)' }}>
+              {mixed.length > 0 && (
+                <button className="btn primary" onClick={() => navigate('/coach/mixed')}>
+                  Go through your mistakes anyway
+                </button>
+              )}
+              <button className="btn" onClick={() => navigate('/import')}>Import more games</button>
+            </div>
           </div>
-        }
-      />
+        </section>
+      )}
+
+      {games.length === 0 && (
+        <section className="coach-block">
+          <div className="card">
+            <p style={{ marginTop: 0 }}>
+              Everything below this line is about players in general. Import a few games and it becomes about
+              you — every move checked on this machine, nothing uploaded.
+            </p>
+            <div className="row wrap" style={{ gap: 'var(--space-2)' }}>
+              <button className="btn primary" onClick={() => navigate('/import')}>Import your games</button>
+              <button className="btn" onClick={() => navigate('/basics/play')}>Play a coached game</button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {rest.length > 0 && (
+        <section className="coach-block">
+          <h2>{games.length ? 'Also worth doing' : 'Until then'}</h2>
+          <RecommendationCards recommendations={rest} />
+        </section>
+      )}
+
+      {mixed.length > 0 && top.length > 0 && (
+        <p className="small dim coach-mixed-link">
+          Or work through <button className="linklike" onClick={() => navigate('/coach/mixed')}>
+            all {mixed.length} of your mistakes
+          </button> in order of what they cost, rather than by habit.
+        </p>
+      )}
     </div>
   );
 }

@@ -464,7 +464,7 @@ function StepDone({ results, failures, onAgain }: {
                 points per game.
               </div>
             </div>
-            <a className="btn primary sm" href={`#/lessons/${top.tag}`}>Open the lesson</a>
+            <a className="btn primary sm" href={`#/coach/${top.tag}`}>Train it with the coach</a>
           </div>
         </Card>
       )}
@@ -479,8 +479,7 @@ function StepDone({ results, failures, onAgain }: {
         <button className="btn primary" onClick={() => navigate(results.length === 1 ? `/game/${results[0].id}` : '/games')}>
           {results.length === 1 ? 'Review the game' : 'Review the games'} →
         </button>
-        <button className="btn" onClick={() => navigate('/profile')}>See your weaknesses</button>
-        <button className="btn" onClick={() => navigate('/puzzles/rewind')}>Train on these mistakes</button>
+        <button className="btn" onClick={() => navigate('/coach')}>Coach me</button>
         <div className="spacer" />
         <button className="btn ghost" onClick={onAgain}>Import more</button>
       </div>

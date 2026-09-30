@@ -130,20 +130,6 @@ export function PuzzlesPage() {
   const roots = useMemo<TrainNode[]>(() => {
     const nodes: TrainNode[] = [];
 
-    if (mine.length) {
-      const weakness = MODES.find((m) => m.id === 'weakness')!;
-      const top = profile.weaknesses.slice(0, 3).map((w) => w.tag);
-      nodes.push({
-        ...modeNode({ ...weakness, tags: top.length ? top : undefined }),
-        id: 'your-weaknesses',
-        label: 'Drill my weaknesses',
-        detail: profile.weaknesses.length
-          ? `Your top problems right now: ${profile.weaknesses.slice(0, 2).map((w) => MOTIF_META[w.tag].short.toLowerCase()).join(', ')}`
-          : 'Puzzles built from the mistakes in your own games',
-        meta: `${mine.length}`,
-      });
-    }
-
     for (const g of MODE_GROUPS) {
       nodes.push({
         id: g.id,

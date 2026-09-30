@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Chess } from 'chess.js';
 import { useGames, useStore } from '../state/store';
 import { buildProfile } from '../coach/weaknesses';
-import { ALL_LESSONS, buildPlan, coreTrack, examplesFor, lessonFor, remainingLessons, type Lesson, type LessonStep } from '../coach/lessons';
+import { ALL_LESSONS, buildPlan, coreTrack, examplesFor, lessonFor, type Lesson, type LessonStep } from '../coach/lessons';
 import { Board } from '../components/Board';
 import { Card, Empty, Pill, navigate, formatDate } from '../components/ui';
 import { TrainBrowser, type TrainNode } from '../components/TrainBrowser';
@@ -46,6 +46,7 @@ const FAMILY_NODE = {
 export function LessonsPage() {
   const games = useGames();
   const profile = useMemo(() => buildProfile(games), [games]);
+  /* Only to decide whether to point at the coach; the ranking itself is its job. */
   const plan = useMemo(() => buildPlan(profile, 6), [profile]);
   const done = useStore((s) => s.lessonDone);
   const track = useMemo(() => coreTrack(done), [done]);
@@ -55,19 +56,6 @@ export function LessonsPage() {
 
   const roots = useMemo<TrainNode[]>(() => {
     const nodes: TrainNode[] = [];
-
-    if (plan.length) {
-      nodes.push({
-        id: 'plan',
-        label: 'Your plan',
-        detail: 'Ranked by what your own games say is costing you the most',
-        meta: `${plan.length}`,
-        children: plan.map((item) => ({
-          ...lessonNode(item.lesson, Boolean(done[item.lesson.tag])),
-          detail: item.reason,
-        })),
-      });
-    }
 
     nodes.push({
       id: 'track',
@@ -100,12 +88,22 @@ export function LessonsPage() {
       <div className="page-head">
         <h1>Lessons</h1>
         <div className="sub">
-          {plan.length
-            ? 'Your plan comes from your own games. The rest is there whenever you want it.'
-            : 'Twenty-six lessons. Start with the track and the order is decided for you.'}
+          Twenty-six lessons, one per habit the analysis can spot. Start with the track and the order is
+          decided for you.
           {lessonsDone > 0 && ` · ${lessonsDone} of ${ALL_LESSONS.length} completed`}
         </div>
       </div>
+
+      {/*
+        * This page is a library, not a plan. Ranking these by the reader's own
+        * games is the coach's job, and having both do it was the clearest case
+        * of the app giving the same advice from two places.
+        */}
+      {plan.length > 0 && (
+        <button className="btn sm library-pointer" onClick={() => navigate('/coach')}>
+          Your plan lives in the coach →
+        </button>
+      )}
 
       <TrainBrowser rootLabel="All lessons" roots={roots} />
     </div>

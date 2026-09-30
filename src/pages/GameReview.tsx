@@ -205,9 +205,6 @@ export function GameReviewPage({ gameId }: { gameId: string }) {
                         <span className="tiny faint">{'\u2212'}{m.winLoss}</span>
                       </button>
                     ))}
-                    <button className="btn sm primary" style={{ marginTop: 'var(--space-2)' }} onClick={() => navigate('/puzzles/rewind')}>
-                      Train these as puzzles
-                    </button>
                   </div>
                 )
               )}
@@ -361,7 +358,7 @@ function MoveDetail({ game, ply }: { game: AnalysedGame; ply: number }) {
           <div className="tiny faint" style={{ marginBottom: 6 }}>WHAT WENT WRONG</div>
           <div className="row wrap" style={{ gap: 6 }}>
             {move.motifs.map((t) => (
-              <a key={t} href={`#/lessons/${t}`} style={{ textDecoration: 'none' }}>
+              <a key={t} href={`#/coach/${t}`} style={{ textDecoration: 'none' }}>
                 <Pill color="var(--accent)" title={`Open the lesson: ${lessonTitleFor(t)}`}>
                   {MOTIF_META[t].label} →
                 </Pill>

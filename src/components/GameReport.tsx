@@ -3,7 +3,7 @@ import { RadarChart } from './RadarChart';
 import { MIN_SAMPLE, comparableAxes, pickBand, ratingIn, scoreGame, type AxisScores, type BandStats } from '../coach/report';
 import { BENCHMARK, BENCHMARK_BUILT } from '../coach/benchmark';
 import { recommendForGame } from '../coach/recommend';
-import { navigate } from './ui';
+import { RecommendationList } from './Recommendations';
 import { useStore } from '../state/store';
 import type { AnalysedGame } from '../types';
 
@@ -58,18 +58,8 @@ function NextSteps({ game }: { game: AnalysedGame }) {
 
   return (
     <section className="report-next">
-      <h3 className="report-next-head">What to do about it</h3>
-      <ul className="rec-list">
-        {recs.map((rec) => (
-          <li key={rec.id}>
-            <button className="rec-row" onClick={() => navigate(rec.href)}>
-              <span className="rec-row-title">{rec.title}</span>
-              <span className="rec-row-why">{rec.why}</span>
-              <span className="rec-row-cta">{rec.cta} →</span>
-            </button>
-          </li>
-        ))}
-      </ul>
+      <h3 className="report-next-head">What the coach says about this game</h3>
+      <RecommendationList recommendations={recs} />
     </section>
   );
 }

@@ -1,4 +1,4 @@
-import type { MotifTag, Profile, AnalysedGame } from '../types';
+import type { Color, MotifTag, Profile, AnalysedGame } from '../types';
 import { MOTIF_META } from '../types';
 import { TACTICAL_LESSONS } from './lessonsTactical';
 import { STRATEGIC_LESSONS } from './lessonsStrategic';
@@ -81,11 +81,6 @@ export function buildPlan(profile: Profile, limit = 6): PlanItem[] {
   return out;
 }
 
-/** Lessons not yet in the plan, so the library is still browsable. */
-export function remainingLessons(plan: PlanItem[]): Lesson[] {
-  const inPlan = new Set(plan.map((p) => p.lesson.tag));
-  return ALL_LESSONS.filter((l) => !inPlan.has(l.tag));
-}
 
 export interface YourExample {
   gameId: string;
@@ -96,6 +91,8 @@ export interface YourExample {
   winLoss: number;
   opponent: string;
   date: string | null;
+  /** The side the learner had, so a board can be oriented without guessing. */
+  hero: Color;
 }
 
 /** The learner's own positions for a given motif, newest and worst first. */
@@ -113,6 +110,9 @@ export function examplesFor(games: AnalysedGame[], tag: MotifTag, limit = 6): Yo
         winLoss: m.winLoss,
         opponent: g.hero === 'w' ? g.meta.black : g.meta.white,
         date: g.meta.date,
+        // Carried explicitly: inferring the side from ply parity breaks on any
+        // position that did not start from the standard opening.
+        hero: g.hero,
       });
     }
   }
