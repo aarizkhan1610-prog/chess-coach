@@ -23,8 +23,13 @@ export function GameReviewPage({ gameId }: { gameId: string }) {
   /**
    * The side panel used to stack accuracy, mistakes and the move list at once.
    * Three competing regions for one job; only one is wanted at a time.
+   *
+   * It opens on the report. That used to be a column of percentages, which was
+   * a worse first thing to see than the mistake list — but the report now
+   * answers "how did this game go" in one shape, which is the question someone
+   * arrives with. The mistakes are one click away and still say how many.
    */
-  const [panel, setPanel] = useState<'summary' | 'mistakes' | 'moves'>('mistakes');
+  const [panel, setPanel] = useState<'summary' | 'mistakes' | 'moves'>('summary');
 
   useEffect(() => setPly(-1), [gameId]);
 
@@ -160,7 +165,7 @@ export function GameReviewPage({ gameId }: { gameId: string }) {
           <Card className="pad-0">
             <div className="panel-tabs" role="tablist">
               {([
-                ['summary', 'Summary'],
+                ['summary', 'Report'],
                 ['mistakes', `Mistakes${mistakes.length ? ` (${mistakes.length})` : ''}`],
                 ['moves', 'Moves'],
               ] as const).map(([id, label]) => (
