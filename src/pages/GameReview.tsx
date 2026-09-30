@@ -10,6 +10,7 @@ import { MOTIF_META, type AnalysedGame, type Color, type MoveVerdict } from '../
 import { VERDICT_META, formatEval } from '../chess/evaluation';
 import { lessonTitleFor } from '../coach/lessons';
 import { openingById } from '../openings';
+import { GameReport } from '../components/GameReport';
 
 const SUMMARY_ORDER: MoveVerdict[] = ['brilliant', 'great', 'best', 'good', 'book', 'inaccuracy', 'mistake', 'blunder'];
 
@@ -177,7 +178,61 @@ export function GameReviewPage({ gameId }: { gameId: string }) {
 
             <div className="panel-body">
               {panel === 'summary' && (
-                <div className="grid" style={{ gap: 'var(--space-4)' }}>
+                <GameReport
+                  game={game}
+                  details={<SummaryDetails game={game} heroName={heroName} heroAcc={heroAcc} oppName={oppName} oppAcc={oppAcc} />}
+                />
+              )}
+
+              {panel === 'mistakes' && (
+                mistakes.length === 0 ? (
+                  <div className="small dim">No mistakes found in this game. Well played.</div>
+                ) : (
+                  <div className="grid" style={{ gap: 'var(--space-2)' }}>
+                    {mistakes.map((m) => (
+                      <button key={m.ply} className="btn sm" style={{ justifyContent: 'flex-start', gap: 'var(--space-2)' }}
+                        onClick={() => setPly(m.ply)}>
+                        <span className="mono" style={{ minWidth: 54, textAlign: 'left' }}>
+                          {m.moveNumber}{m.color === 'w' ? '.' : '\u2026'} {m.san}
+                        </span>
+                        <span className="mark bold" style={{ color: VERDICT_META[m.verdict].color }}>{VERDICT_META[m.verdict].symbol}</span>
+                        <div className="spacer" />
+                        <span className="tiny faint">{'\u2212'}{m.winLoss}</span>
+                      </button>
+                    ))}
+                    <button className="btn sm primary" style={{ marginTop: 'var(--space-2)' }} onClick={() => navigate('/puzzles/rewind')}>
+                      Train these as puzzles
+                    </button>
+                  </div>
+                )
+              )}
+
+              {panel === 'moves' && (
+                <MoveList moves={game.moves} current={ply} onSelect={setPly} heroColor={game.hero} />
+              )}
+            </div>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Everything the Summary tab used to show, now behind "Full breakdown".
+ *
+ * None of it is wrong — it is just unreadable as an opening move, because a
+ * percentage means nothing without knowing what percentage is normal.
+ */
+function SummaryDetails({ game, heroName, heroAcc, oppName, oppAcc }: {
+  game: AnalysedGame;
+  heroName: string;
+  heroAcc: number;
+  oppName: string;
+  oppAcc: number;
+}) {
+  return (
+<div className="grid" style={{ gap: 'var(--space-4)' }}>
                   <div>
                     <div className="row small">
                       <span className="bold">{heroName}</span>
@@ -222,39 +277,6 @@ export function GameReviewPage({ gameId }: { gameId: string }) {
                     })}
                   </div>
                 </div>
-              )}
-
-              {panel === 'mistakes' && (
-                mistakes.length === 0 ? (
-                  <div className="small dim">No mistakes found in this game. Well played.</div>
-                ) : (
-                  <div className="grid" style={{ gap: 'var(--space-2)' }}>
-                    {mistakes.map((m) => (
-                      <button key={m.ply} className="btn sm" style={{ justifyContent: 'flex-start', gap: 'var(--space-2)' }}
-                        onClick={() => setPly(m.ply)}>
-                        <span className="mono" style={{ minWidth: 54, textAlign: 'left' }}>
-                          {m.moveNumber}{m.color === 'w' ? '.' : '\u2026'} {m.san}
-                        </span>
-                        <span className="mark bold" style={{ color: VERDICT_META[m.verdict].color }}>{VERDICT_META[m.verdict].symbol}</span>
-                        <div className="spacer" />
-                        <span className="tiny faint">{'\u2212'}{m.winLoss}</span>
-                      </button>
-                    ))}
-                    <button className="btn sm primary" style={{ marginTop: 'var(--space-2)' }} onClick={() => navigate('/puzzles/rewind')}>
-                      Train these as puzzles
-                    </button>
-                  </div>
-                )
-              )}
-
-              {panel === 'moves' && (
-                <MoveList moves={game.moves} current={ply} onSelect={setPly} heroColor={game.hero} />
-              )}
-            </div>
-          </Card>
-        </div>
-      </div>
-    </div>
   );
 }
 

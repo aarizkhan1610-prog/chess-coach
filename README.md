@@ -99,6 +99,25 @@ own. Lichess rate-limits to one request at a time, and Chess.com's bot
 protection occasionally rejects browser calls — both are reported with a
 readable explanation, and pasting a PGN always works as a fallback.
 
+**A report, not a spreadsheet.** A game opens on a shape rather than a column
+of percentages, because there is no way to know whether 71% is good without
+something to hold it against. Five or six axes — opening, middlegame, endgame,
+tactics, blunders, converting — are drawn against the typical range for players
+at your rating, and everything else is one click away under *Full breakdown*.
+
+The comparison is measured, not invented. `npm run build:benchmark` samples real
+rated games from the public Lichess API across rating bands, runs them through
+the same analysis and the same scoring function that runs on your own games, and
+writes the medians and quartiles to `src/coach/benchmark.ts`. Two rules keep it
+honest: an axis your game did not contain enough of is left off the chart rather
+than drawn as zero, and a rating band with too few samples is passed over for
+the nearest one that has enough, which the page says out loud.
+
+The axes earn their place or they go. King safety was one of the original six
+and scored a flat 100 in every band across 110 games — it fired so rarely that
+it measured nothing — so it was replaced by blunder rate, which separates the
+bands cleanly.
+
 **Find the pattern.** For every mistake the app works out *why* it was a mistake
 — not just "you lost 30%", but "you left a piece undefended", "you walked into a
 fork", "you moved a pawn in front of your own king". Those causes aggregate

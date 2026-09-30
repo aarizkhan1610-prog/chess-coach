@@ -1038,3 +1038,47 @@ tr.clickable:hover td { background: var(--surface-2); }
   .beginner-banner { padding: var(--space-3) var(--space-4); gap: var(--space-3); }
   .beginner-arrow { display: none; }
 }
+
+/* ---- Game report ------------------------------------------------------ *
+ * Emphasis rather than two competing series: the player carries the only
+ * colour on the chart and the benchmark is recessive grey context, so the
+ * shape reads before any of the words do.
+ * --------------------------------------------------------------------- */
+
+.radar { display: grid; gap: var(--space-2); }
+.radar-svg { width: 100%; height: auto; display: block; overflow: visible; }
+
+.radar-label {
+  font-size: 10.5px; font-weight: 640; fill: var(--text-dim);
+  transition: fill 0.12s ease;
+}
+.radar-label.on { fill: var(--text); }
+.radar-label.absent { fill: var(--text-faint); font-weight: 500; }
+.radar-value { font-size: 9.5px; fill: var(--text-faint); font-variant-numeric: tabular-nums; }
+
+.radar-legend {
+  display: flex; flex-wrap: wrap; gap: var(--space-4);
+  font-size: 0.8rem; color: var(--text-dim);
+}
+.radar-key { display: inline-flex; align-items: center; gap: 6px; }
+.radar-swatch { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+.radar-swatch.mine { background: color-mix(in srgb, var(--accent) 22%, transparent); border: 2px solid var(--accent); }
+.radar-swatch.theirs { background: color-mix(in srgb, var(--text-faint) 30%, transparent); border: 1px solid var(--text-faint); }
+
+.radar-hint, .radar-missing { margin: 0; max-width: var(--measure); }
+
+.report-verdict {
+  margin: 0; font-size: 1rem; line-height: 1.55; max-width: var(--measure);
+  border-left: 2px solid var(--accent); padding-left: var(--space-3);
+}
+.report-note { margin: 0; max-width: var(--measure); }
+
+.report-more > summary {
+  cursor: pointer; font-size: 0.86rem; font-weight: 640; color: var(--accent);
+  padding: var(--space-2) 0; list-style: none;
+}
+.report-more > summary::-webkit-details-marker { display: none; }
+.report-more > summary::before { content: '▸ '; display: inline-block; transition: transform 0.15s ease; }
+.report-more[open] > summary::before { content: '▾ '; }
+.report-more > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.report-details { padding-top: var(--space-2); }
