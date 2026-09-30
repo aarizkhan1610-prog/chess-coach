@@ -17,6 +17,18 @@ export interface SessionRecord {
 
 export interface Settings {
   playerName: string;
+  /**
+   * The player's own estimate of their rating.
+   *
+   * Before there are any games this is the only thing the app knows about who
+   * it is talking to, so it decides what gets recommended and stands in for a
+   * missing rating header when a game is compared against the benchmark. Games
+   * take over the moment there are any: they are about this player rather than
+   * about players like them.
+   */
+  rating: number | null;
+  /** Set when the question has been answered — including by declining it. */
+  ratingAsked: boolean;
   depth: AnalysisDepthPreset;
   theme: 'dark' | 'light';
   /** Orient the board to the side you played. */
@@ -71,6 +83,8 @@ interface AppState {
 
 const DEFAULT_SETTINGS: Settings = {
   playerName: '',
+  rating: null,
+  ratingAsked: false,
   depth: 'balanced',
   theme: 'dark',
   autoOrient: true,

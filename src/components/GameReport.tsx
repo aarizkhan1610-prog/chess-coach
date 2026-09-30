@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { RadarChart } from './RadarChart';
 import { MIN_SAMPLE, comparableAxes, pickBand, ratingIn, scoreGame, type AxisScores, type BandStats } from '../coach/report';
 import { BENCHMARK, BENCHMARK_BUILT } from '../coach/benchmark';
+import { useStore } from '../state/store';
 import type { AnalysedGame } from '../types';
 
 /*
@@ -51,8 +52,10 @@ function verdictLine(scores: AxisScores, band: BandStats): ReactNode {
 export function GameReport({ game, details }: { game: AnalysedGame; details: ReactNode }) {
   const [open, setOpen] = useState(false);
 
+  const ownRating = useStore((st) => st.settings.rating);
   const scores = useMemo(() => scoreGame(game, game.hero), [game]);
-  const rating = ratingIn(game);
+  /* A pasted PGN often carries no rating; fall back to what they told us. */
+  const rating = ratingIn(game) ?? ownRating;
   const choice = useMemo(() => pickBand(BENCHMARK, rating), [rating]);
 
   /* No rating in the file, or no benchmark worth the name: say so plainly. */
@@ -61,7 +64,7 @@ export function GameReport({ game, details }: { game: AnalysedGame; details: Rea
       <div className="grid" style={{ gap: 'var(--space-4)' }}>
         <div className="report-note small dim">
           {rating === null
-            ? 'This game has no rating in it, so there is nothing to compare against. Games imported from Lichess or Chess.com carry one.'
+            ? 'This game has no rating in it and none is set, so there is nothing to compare against. Add one on the home page, or import from Lichess or Chess.com, which carry theirs.'
             : `There are not yet ${MIN_SAMPLE} benchmark games at your rating, so a comparison would be guesswork.`}
         </div>
         {details}

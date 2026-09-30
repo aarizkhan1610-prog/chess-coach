@@ -1,96 +1,169 @@
-import { PathCards, usePaths } from '../components/paths';
-import { HeroPuzzle } from '../components/HeroPuzzle';
-import { navigate } from '../components/ui';
-import { ALL_OPENINGS } from '../openings';
-import { ALL_LESSONS } from '../coach/lessons';
-import { STARTER_PUZZLES } from '../coach/starterPuzzles';
-import { MOTIF_TAGS } from '../types';
+import { useMemo, useState } from 'react';
+import { Pill, navigate } from '../components/ui';
+import { recommend, ratingFromGames, type Recommendation } from '../coach/recommend';
+import { bandFor } from '../coach/report';
+import { buildProfile } from '../coach/weaknesses';
+import { useGames, useStore } from '../state/store';
 
-/** What the coach actually does, stated once. Counts come from the real data. */
-const FEATURES: { title: string; body: string }[] = [
-  {
-    title: 'Real engine analysis, on your machine',
-    body: 'Stockfish 19 runs in this tab. Every position in a game is evaluated, and every move gets a verdict and a cost in win probability.',
-  },
-  {
-    title: `${MOTIF_TAGS.length} reasons a move can be wrong`,
-    body: 'Not just that you dropped 30% — that you left a piece undefended, walked into a fork, or wrecked your own king safety.',
-  },
-  {
-    title: 'A profile built from your own games',
-    body: 'Mistakes are grouped and ranked by what each habit actually costs you per game, so you work on the expensive ones first.',
-  },
-  {
-    title: `${ALL_LESSONS.length} lessons that follow that profile`,
-    body: 'Ordered by your own weaknesses, each with a checklist you can use at the board and positions from your games.',
-  },
-  {
-    title: 'Puzzles made from your blunders',
-    body: `The position you got wrong, plus ${STARTER_PUZZLES.length} to warm up on, across seven modes from untimed practice to a three-minute rush.`,
-  },
-  {
-    title: `${ALL_OPENINGS.length} opening courses`,
-    body: 'Both colours, taught move by move with the ideas behind them, then played back from memory to check they stuck.',
-  },
-];
+/*
+ * Home.
+ *
+ * It used to be a chooser: four pathways, all equal, none of them about the
+ * person reading. That is a reasonable page for a product with nothing to go
+ * on, and a poor one for a coach — a coach's first question is who you are.
+ *
+ * So the first visit asks for a rating and nothing else, because that single
+ * number is enough to say something specific, and everything after it is
+ * built from what the app actually knows: the rating until there are games,
+ * and the games from then on.
+ */
 
-export function LandingPage() {
-  const paths = usePaths();
+const SOURCE_LABEL: Record<Recommendation['source'], string> = {
+  'your-games': 'From your games',
+  'your-rating': 'For your rating',
+  'starting-out': 'To begin with',
+};
+
+/* ------------------------------------------------------------------ *
+ * The question
+ * ------------------------------------------------------------------ */
+
+function RatingPrompt({ current, onAnswer }: { current: number | null; onAnswer: (rating: number | null) => void }) {
+  const [value, setValue] = useState(current === null ? '' : String(current));
+  const parsed = Number(value);
+  const valid = Number.isFinite(parsed) && parsed >= 100 && parsed <= 3200;
 
   return (
-    <div className="landing">
-      <header className="landing-hero">
-        <div className="landing-copy">
-          <div className="landing-mark">{'♚'}</div>
-          <h1>What would you like to work on?</h1>
-          <p className="landing-lede">
-            A chess coach that reads your games, works out what you keep getting wrong, and then
-            trains that specifically. Pick a path — none of them need setting up first.
-          </p>
-          <div className="row wrap landing-actions">
-            <button className="btn primary" onClick={() => navigate('/import')}>
-              Import your games
-            </button>
-            <span className="tiny faint">Lichess, Chess.com, or a PGN</span>
-          </div>
-          <div className="landing-trust">
-            <span>{'✓'} Runs entirely in your browser</span>
-            <span>{'✓'} No account</span>
-            <span>{'✓'} Your games never leave this machine</span>
-          </div>
-        </div>
+    <div className="greeting">
+      <div className="greeting-mark" aria-hidden>{'♚'}</div>
+      <h1>{current === null ? 'What is your rating?' : 'Change your rating'}</h1>
+      <p className="greeting-lede">
+        It is the one thing that lets the coach say something specific before it has seen you play.
+        A rough number is fine, and you can change it later.
+      </p>
 
-        <HeroPuzzle />
-      </header>
+      <form
+        className="row wrap greeting-form"
+        onSubmit={(e) => { e.preventDefault(); if (valid) onAnswer(Math.round(parsed)); }}
+      >
+        <input
+          className="greeting-input"
+          type="number"
+          inputMode="numeric"
+          min={100}
+          max={3200}
+          placeholder="1200"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          aria-label="Your rating"
+          autoFocus
+        />
+        <button className="btn primary" type="submit" disabled={!valid}>
+          {valid ? `Continue at ${Math.round(parsed)}` : 'Continue'}
+        </button>
+      </form>
 
-      {/*
-        * Deliberately not a fifth path card. The four paths all assume you can
-        * already play; this does not, so it is set apart rather than made a
-        * peer — and four choices stays four choices.
-        */}
-      <button className="beginner-banner" onClick={() => navigate('/basics')}>
-        <span className="beginner-mark" aria-hidden>{'♟'}</span>
-        <span className="beginner-text">
-          <span className="beginner-title">New to chess? Start here</span>
-          <span className="beginner-sub">
-            How the pieces move, the rules that catch everyone out, and a famous game played
-            move by move with the reasoning explained.
-          </span>
-        </span>
-        <span className="beginner-arrow" aria-hidden>{'→'}</span>
+      {value !== '' && !valid && (
+        <p className="tiny" style={{ color: 'var(--bad)' }}>Ratings run from about 100 to 3200.</p>
+      )}
+
+      <button className="btn ghost sm greeting-skip" onClick={() => onAnswer(null)}>
+        I do not have one, or I am new to chess →
       </button>
+    </div>
+  );
+}
 
-      <PathCards paths={paths} />
+/* ------------------------------------------------------------------ *
+ * Everything after it
+ * ------------------------------------------------------------------ */
 
-      <section className="features">
-        <h2>What it does</h2>
-        <div className="feature-grid">
-          {FEATURES.map((f) => (
-            <div className="feature" key={f.title}>
-              <div className="feature-title">{f.title}</div>
-              <div className="feature-body">{f.body}</div>
-            </div>
-          ))}
+function RecommendationCard({ rec }: { rec: Recommendation }) {
+  return (
+    <button className="rec-card" onClick={() => navigate(rec.href)}>
+      <span className="rec-source">{SOURCE_LABEL[rec.source]}</span>
+      <span className="rec-title">{rec.title}</span>
+      <span className="rec-why">{rec.why}</span>
+      <span className="rec-cta">{rec.cta} →</span>
+    </button>
+  );
+}
+
+export function LandingPage() {
+  const games = useGames();
+  const settings = useStore((s) => s.settings);
+  const setSettings = useStore((s) => s.setSettings);
+
+  /*
+   * Never ask for something the imported games already state — but "change"
+   * has to work even then, so asking again is a decision rather than a
+   * consequence of the stored value happening to be empty.
+   */
+  const [editing, setEditing] = useState(false);
+  const known = useMemo(() => settings.rating ?? ratingFromGames(games), [settings.rating, games]);
+  const asked = settings.ratingAsked || known !== null;
+
+  const recs = useMemo(() => recommend(games, known), [games, known]);
+  const profile = useMemo(() => (games.length ? buildProfile(games) : null), [games]);
+
+  if (!asked || editing) {
+    return (
+      <RatingPrompt
+        current={editing ? known : null}
+        onAnswer={(rating) => {
+          setSettings({ rating, ratingAsked: true });
+          setEditing(false);
+        }}
+      />
+    );
+  }
+
+  return (
+    <div className="home">
+      <div className="page-head">
+        <h1>{games.length ? 'Where you are' : 'Where to start'}</h1>
+        <div className="row wrap home-facts">
+          {known !== null && <Pill>{`Rated ${known} · ${bandFor(known).label}`}</Pill>}
+          {games.length > 0 && <Pill>{`${games.length} game${games.length === 1 ? '' : 's'} analysed`}</Pill>}
+          {profile && profile.weaknesses.length > 0 && (
+            <Pill>{`${profile.weaknesses.length} habit${profile.weaknesses.length === 1 ? '' : 's'} found`}</Pill>
+          )}
+          <button className="btn ghost sm" onClick={() => setEditing(true)}>
+            {known === null ? 'Set a rating' : 'Change'}
+          </button>
+        </div>
+        <p className="sub">
+          {games.length
+            ? 'Built from your own games — what they say you keep doing, and what to do about it.'
+            : known !== null
+              ? 'Measured from real games at your rating. Import your own and this becomes about you rather than about players like you.'
+              : 'No rating and no games yet, so start at the beginning.'}
+        </p>
+      </div>
+
+      <section className="rec-grid">
+        {recs.map((rec) => <RecommendationCard key={rec.id} rec={rec} />)}
+      </section>
+
+      <section className="home-next">
+        <h2>The two things this does</h2>
+        <div className="home-pair">
+          <button className="home-major" onClick={() => navigate('/coach')}>
+            <span className="home-major-title">Coach me</span>
+            <span className="home-major-body">
+              {games.length
+                ? 'Replay the moments your games turned on, and find out what the alternatives actually do.'
+                : 'Play a game with every move explained as you make it.'}
+            </span>
+          </button>
+          <button className="home-major" onClick={() => navigate(games.length ? '/games' : '/import')}>
+            <span className="home-major-title">{games.length ? 'Read my games' : 'Import my games'}</span>
+            <span className="home-major-body">
+              {games.length
+                ? 'Every move checked, a report per game, and the habits behind the mistakes.'
+                : 'From Lichess, Chess.com, or a PGN. Everything is analysed on this machine.'}
+            </span>
+          </button>
         </div>
       </section>
     </div>

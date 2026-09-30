@@ -1091,3 +1091,54 @@ tr.clickable:hover td { background: var(--surface-2); }
   margin-bottom: var(--space-4); font-size: 0.95rem; line-height: 1.55; max-width: var(--measure);
 }
 .coach-spot-nav { gap: var(--space-2); margin-top: var(--space-4); }
+
+/* ---- Home: the question, then what follows from it -------------------- */
+
+.greeting { max-width: 34rem; margin: clamp(var(--space-5), 8vh, 5rem) auto 0; text-align: center; }
+.greeting-mark { font-size: 2.6rem; line-height: 1; color: var(--accent); margin-bottom: var(--space-3); }
+.greeting h1 { margin: 0 0 var(--space-3); }
+.greeting-lede { color: var(--text-dim); line-height: 1.6; margin: 0 auto var(--space-5); max-width: 30rem; }
+.greeting-form { justify-content: center; gap: var(--space-2); margin-bottom: var(--space-3); }
+.greeting-input {
+  width: 8.5rem; text-align: center; font-size: 1.25rem; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+/* The number is the point of the screen; the spinners are not. */
+.greeting-input::-webkit-outer-spin-button,
+.greeting-input::-webkit-inner-spin-button { appearance: none; margin: 0; }
+.greeting-input { appearance: textfield; }
+.greeting-skip { margin-top: var(--space-2); }
+
+.home-facts { align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); }
+
+.rec-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  gap: var(--space-3); margin-bottom: var(--space-6);
+}
+.rec-card {
+  display: flex; flex-direction: column; gap: var(--space-2); text-align: left;
+  padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg-elev); color: var(--text); font: inherit; cursor: pointer;
+}
+.rec-card:hover { border-color: var(--accent); }
+.rec-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.rec-source {
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--accent);
+}
+.rec-title { font-size: 1.02rem; font-weight: 680; line-height: 1.35; }
+.rec-why { font-size: 0.87rem; color: var(--text-dim); line-height: 1.5; flex: 1; }
+.rec-cta { font-size: 0.85rem; font-weight: 640; color: var(--accent); }
+
+.home-next h2 { margin: 0 0 var(--space-3); }
+.home-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: var(--space-3); }
+.home-major {
+  display: flex; flex-direction: column; gap: var(--space-2); text-align: left;
+  padding: var(--space-5); border: 1px solid var(--accent); border-radius: var(--radius);
+  background: color-mix(in srgb, var(--accent) 7%, var(--bg-elev));
+  color: var(--text); font: inherit; cursor: pointer;
+}
+.home-major:hover { background: color-mix(in srgb, var(--accent) 13%, var(--bg-elev)); }
+.home-major:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.home-major-title { font-size: 1.1rem; font-weight: 700; }
+.home-major-body { font-size: 0.9rem; color: var(--text-dim); line-height: 1.5; }

@@ -44,6 +44,25 @@ export function SettingsPage() {
                 onChange={(e) => setSettings({ playerName: e.target.value })}
               />
             </label>
+            <label className="field">
+              <span>Your rating</span>
+              <input
+                type="number"
+                min={100}
+                max={3200}
+                value={settings.rating ?? ''}
+                placeholder="e.g. 1200"
+                onChange={(e) => {
+                  const n = Number(e.target.value);
+                  const ok = e.target.value !== '' && Number.isFinite(n) && n >= 100 && n <= 3200;
+                  setSettings({ rating: ok ? Math.round(n) : null, ratingAsked: true });
+                }}
+              />
+              <span className="tiny faint">
+                Used to pick what gets recommended, and to compare a game against players at your level
+                when the file itself carries no rating.
+              </span>
+            </label>
             <label className="row small" style={{ gap: 8, cursor: 'pointer' }}>
               <input
                 type="checkbox"
