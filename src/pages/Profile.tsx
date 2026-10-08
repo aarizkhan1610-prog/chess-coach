@@ -5,7 +5,7 @@ import { examplesFor } from '../coach/lessons';
 import { ReportTabs } from '../components/ReportTabs';
 import { RadarChart } from '../components/RadarChart';
 import { TrendChart } from '../components/TrendChart';
-import { accuracyOverTime, aggregateScores, comparableAxes, lossBreakdown, pickBand } from '../coach/report';
+import { accuracyOverTime, aggregateScores, comparableAxes, lossBreakdown, pickBand, scoreOpenings } from '../coach/report';
 import { ratingFromGames } from '../coach/recommend';
 import { BENCHMARK, BENCHMARK_BUILT } from '../coach/benchmark';
 import { Board } from '../components/Board';
@@ -80,6 +80,7 @@ export function ProfilePage() {
   const shape = aggregateScores(games);
   const rating = ownRating ?? ratingFromGames(games);
   const band = pickBand(BENCHMARK, rating);
+  const openings = useMemo(() => scoreOpenings(games, band?.band ?? null), [games, band]);
   const drawn = band ? comparableAxes(shape, band.band) : [];
   const trend = accuracyOverTime(games);
 
@@ -327,25 +328,56 @@ export function ProfilePage() {
             })}
           </Card>
 
-          <Card title="Openings you play">
-            {profile.openingRecord.length === 0 ? (
+          <Card title="Openings, against your rating">
+            {openings.length === 0 ? (
               <div className="small dim">No openings recognised yet.</div>
             ) : (
-              <table className="table-tight">
-                <thead><tr><th>Opening</th><th style={{ width: 52 }}>Games</th><th style={{ width: 58 }}>Score</th><th style={{ width: 58 }}>Acc.</th></tr></thead>
-                <tbody>
-                  {profile.openingRecord.map((o) => (
-                    <tr key={o.openingId}>
-                      <td className="small">
-                        {o.openingId.startsWith('family:') ? o.name : <a href={`#/openings/${o.openingId}`}>{o.name}</a>}
-                      </td>
-                      <td className="mono small">{o.games}</td>
-                      <td className="mono small">{o.score}%</td>
-                      <td className="mono small" style={{ color: accuracyColor(o.accuracy) }}>{o.accuracy}%</td>
+              <>
+                <table className="table-tight">
+                  <thead>
+                    <tr>
+                      <th>Opening</th>
+                      <th style={{ width: 52 }}>Games</th>
+                      <th style={{ width: 58 }}>Score</th>
+                      <th style={{ width: 96 }}>Opening play</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {openings.map((o) => (
+                      <tr key={o.openingId}>
+                        <td className="small">
+                          {o.openingId.startsWith('family:') ? o.name : <a href={`#/openings/${o.openingId}`}>{o.name}</a>}
+                        </td>
+                        <td className="mono small">{o.games}</td>
+                        <td className="mono small">{o.score}%</td>
+                        <td className="mono small">
+                          {o.gap === null ? (
+                            <span className="faint" title={`${o.games} game${o.games === 1 ? '' : 's'} is too few to score`}>—</span>
+                          ) : (
+                            <>
+                              <span style={{ color: accuracyColor(o.opening as number) }}>{o.opening}</span>
+                              <span
+                                className="tiny"
+                                style={{ color: o.gap >= 0 ? 'var(--good)' : 'var(--bad)', marginLeft: 6 }}
+                              >
+                                {o.gap >= 0 ? '+' : '−'}{Math.abs(Math.round(o.gap))}
+                              </span>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="tiny faint" style={{ marginTop: 10 }}>
+                  {band
+                    ? <>Opening-phase score against {band.band.median.opening} typical at {band.band.label} — how
+                      players at your rating handle the opening in general, not this opening in particular.
+                      No public sample is deep enough for that: the commonest opening in the benchmark appears
+                      19 times across 300 games.</>
+                    : <>Set a rating and these get a baseline to sit against.</>}
+                </div>
+              </>
             )}
           </Card>
         </div>

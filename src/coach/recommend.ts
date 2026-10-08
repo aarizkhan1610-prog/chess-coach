@@ -1,5 +1,5 @@
 import { MOTIF_META, type AnalysedGame, type MotifTag } from '../types';
-import { AXES, bandFor, pickBand, type AxisId } from './report';
+import { AXES, bandFor, pickBand, scoreOpenings, type AxisId } from './report';
 import { BENCHMARK } from './benchmark';
 import { buildProfile } from './weaknesses';
 import { lessonFor } from './lessons';
@@ -103,13 +103,26 @@ export function recommend(games: AnalysedGame[], rating: number | null, limit = 
       });
     }
 
-    // The opening actually played most, rather than one chosen for them.
-    const played = profile.openingRecord[0];
-    if (played && ALL_OPENINGS.some((o) => o.id === played.openingId)) {
+    /*
+     * The opening that leaves this player worst placed against their rating,
+     * falling back to the one they play most when nothing has enough games to
+     * be scored. Pointing at the most-played opening was pointing at the one
+     * they are most likely to already know.
+     */
+    const band = rating === null ? null : pickBand(BENCHMARK, rating);
+    const scored = scoreOpenings(games, band?.band ?? null);
+    const known = scored.filter((o) => ALL_OPENINGS.some((x) => x.id === o.openingId));
+    /* `scored` is in gap order, so the fallback has to re-sort: without that,
+     * "the one you play most" would name whichever scored least badly. */
+    const played = known.find((o) => o.gap !== null && o.gap < 0)
+      ?? [...known].sort((a, b) => b.games - a.games)[0];
+    if (played) {
       out.push({
         id: `opening:${played.openingId}`,
         title: played.name,
-        why: `You have played this in ${played.games} game${played.games === 1 ? '' : 's'}, scoring ${Math.round(played.score)}%.`,
+        why: played.gap !== null && played.gap < 0
+          ? `Your opening play in this scores ${played.opening} against ${played.typical} typical at your rating, across ${played.games} games.`
+          : `You have played this in ${played.games} game${played.games === 1 ? '' : 's'}, scoring ${Math.round(played.score)}%.`,
         href: `/openings/${played.openingId}`,
         cta: 'Learn the ideas',
         source: 'your-games',

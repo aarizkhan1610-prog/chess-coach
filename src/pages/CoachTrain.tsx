@@ -3,7 +3,9 @@ import { CoachedBoard } from '../components/CoachedBoard';
 import { Pill, navigate } from '../components/ui';
 import { useEngineStatus } from '../engine/useEngine';
 import { examplesFor, lessonFor } from '../coach/lessons';
-import { buildProfile } from '../coach/weaknesses';
+import { pickBand, scoreOpenings } from '../coach/report';
+import { ratingFromGames } from '../coach/recommend';
+import { BENCHMARK } from '../coach/benchmark';
 import { coachSpots, spotReason } from '../coach/fromGames';
 import { puzzlesFromGames } from '../coach/puzzles';
 import { STARTER_PUZZLES } from '../coach/starterPuzzles';
@@ -30,6 +32,7 @@ export function CoachTrainPage({ tag }: { tag: MotifTag }) {
   const games = useGames();
   const { status } = useEngineStatus();
   const done = useStore((s) => s.coachSpotsDone);
+  const rating = useStore((s) => s.settings.rating) ?? ratingFromGames(games);
   const markDone = useStore((s) => s.markSpotDone);
   const lessonDone = useStore((s) => s.lessonDone[tag]);
 
@@ -44,11 +47,21 @@ export function CoachTrainPage({ tag }: { tag: MotifTag }) {
     return mine + STARTER_PUZZLES.filter((p) => p.tags.includes(tag)).length;
   }, [games, tag]);
 
+  /*
+   * The opening that leaves this player worst placed against their rating, not
+   * the one they have played most — the report ranks them that way, and the
+   * coach naming a different one would be the app arguing with itself.
+   */
   const opening = useMemo(() => {
     if (!OPENING_TAGS.includes(tag)) return null;
-    const played = buildProfile(games).openingRecord[0];
-    return played && openingById(played.openingId) ? played : null;
-  }, [games, tag]);
+    const band = rating === null ? null : pickBand(BENCHMARK, rating);
+    const scored = scoreOpenings(games, band?.band ?? null).filter((o) => openingById(o.openingId));
+    /* `scored` is in gap order, so the fallback has to re-sort, or the card
+     * would say "most played" over whichever opening scored least badly. */
+    return scored.find((o) => o.gap !== null && o.gap < 0)
+      ?? [...scored].sort((a, b) => b.games - a.games)[0]
+      ?? null;
+  }, [games, tag, rating]);
 
   const spot = spots[index];
   const trained = spots.filter((s) => done[`${s.gameId}:${s.ply}`]).length;
@@ -161,10 +174,14 @@ export function CoachTrainPage({ tag }: { tag: MotifTag }) {
         <section className="coach-block">
           <h2>Where it keeps happening</h2>
           <button className="rec-card coach-stage-card" onClick={() => navigate(`/openings/${opening.openingId}`)}>
-            <span className="rec-source">Your most played opening</span>
+            <span className="rec-source">
+              {opening.gap !== null && opening.gap < 0 ? 'Your weakest opening' : 'Your most played opening'}
+            </span>
             <span className="rec-title">{opening.name}</span>
             <span className="rec-why">
-              {`You have played this ${opening.games} time${opening.games === 1 ? '' : 's'}, scoring ${Math.round(opening.score)}%. `}
+              {opening.gap !== null && opening.gap < 0
+                ? `Your opening play here scores ${opening.opening} against ${opening.typical} typical at your rating, across ${opening.games} games. `
+                : `You have played this ${opening.games} time${opening.games === 1 ? '' : 's'}, scoring ${Math.round(opening.score)}%. `}
               Knowing its plans is the difference between remembering moves and knowing why they are played.
             </span>
             <span className="rec-cta">Learn the ideas →</span>

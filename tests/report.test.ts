@@ -9,7 +9,7 @@
  */
 import {
   AXES, BANDS, MIN_SAMPLE, bandFor, comparableAxes, percentile, pickBand, ratingIn, scoreGame,
-  summarise, type AxisScores, type BandStats,
+  scoreOpenings, summarise, type AxisScores, type BandStats,
 } from '../src/coach/report';
 import type { AnalysedGame, AnalysedMove, Color, MotifTag, Phase } from '../src/types';
 
@@ -152,6 +152,87 @@ const many = (n: number, over: Partial<AnalysedMove> & { color: Color; phase: Ph
   } else {
     bad('game length should not move the score', `${shortHold} vs ${longHold}`);
   }
+}
+
+/* ---- openings, against the band ---- */
+{
+  /** A game in one opening, with a given opening-phase accuracy. */
+  function opened(id: string, openingAcc: number, result = '1-0', hero: Color = 'w'): AnalysedGame {
+    const g = game(many(8, { color: hero, phase: 'opening' }));
+    return {
+      ...g,
+      hero,
+      openingId: id,
+      openingName: id,
+      meta: { ...g.meta, result },
+      accuracyByPhase: {
+        opening: { w: openingAcc, b: openingAcc },
+        middlegame: { w: 70, b: 70 },
+        endgame: { w: 70, b: 70 },
+      },
+    };
+  }
+
+  const band = (openingMedian: number | null): BandStats => ({
+    ...BANDS[1], games: 60,
+    median: { opening: openingMedian, middlegame: 70, endgame: 70, tactics: 70, errors: 70, conversion: 70 },
+    p25: { opening: 60, middlegame: 60, endgame: 60, tactics: 60, errors: 60, conversion: 60 },
+    p75: { opening: 90, middlegame: 90, endgame: 90, tactics: 90, errors: 90, conversion: 90 },
+    n: { opening: 60, middlegame: 60, endgame: 60, tactics: 60, errors: 60, conversion: 60 },
+  });
+
+  eq('no openings recognised means nothing to score', scoreOpenings([], band(80)).length, 0);
+
+  /* One game is a sample of one, whatever it says. */
+  const once = scoreOpenings([opened('london', 40)], band(80));
+  eq('a single game in an opening is listed but not scored', once[0].gap, null);
+  eq('and it still reports how many games that was', once[0].games, 1);
+
+  const twice = scoreOpenings([opened('london', 40), opened('london', 44)], band(80));
+  eq('two games is enough to score', twice[0].opening, 42);
+  eq('the gap is measured against the band', twice[0].gap, -38);
+  eq('and the band figure is carried with it', twice[0].typical, 80);
+
+  /* Worst against the band first — the row worth reading is at the top. */
+  const mixed = scoreOpenings(
+    [opened('london', 40), opened('london', 44), opened('caro-kann', 95), opened('caro-kann', 93)],
+    band(80),
+  );
+  eq('the weakest opening sorts first', mixed.map((o) => o.openingId), ['london', 'caro-kann']);
+  eq('an opening better than the band scores positive', (mixed[1].gap as number) > 0, true);
+
+  /* Unscorable rows go last, however many games they have. */
+  const withSingles = scoreOpenings(
+    [opened('london', 40), opened('london', 44), opened('scotch', 20)],
+    band(80),
+  );
+  eq('an unscored opening sorts after the scored ones', withSingles[withSingles.length - 1].openingId, 'scotch');
+
+  /*
+   * The order is by gap, which is what the callers that want "the opening you
+   * play most" have to re-sort out of — the coach card and the recommendation
+   * both label that case explicitly.
+   */
+  const ordered = scoreOpenings(
+    [opened('london', 95), opened('london', 95), opened('london', 95),
+     opened('scotch', 40), opened('scotch', 44)],
+    band(80),
+  );
+  eq('sorting is by gap, not by games played', ordered[0].openingId, 'scotch');
+  eq('and the most played is recoverable from the same list',
+    [...ordered].sort((a, b) => b.games - a.games)[0].openingId, 'london');
+
+  /* No rating, no baseline — and the score must not invent one. */
+  const noBand = scoreOpenings([opened('london', 40), opened('london', 44)], null);
+  eq('without a band there is no typical', noBand[0].typical, null);
+  eq('and therefore no gap', noBand[0].gap, null);
+  eq('but the opening is still scored', noBand[0].opening, 42);
+
+  /* The result percentage reads from the hero's side, not White's. */
+  const asBlack = scoreOpenings([opened('caro-kann', 70, '0-1', 'b'), opened('caro-kann', 70, '0-1', 'b')], band(80));
+  eq('a win as Black counts as a win', asBlack[0].score, 100);
+  const drawn = scoreOpenings([opened('london', 70, '1/2-1/2'), opened('london', 70, '1/2-1/2')], band(80));
+  eq('a draw is half a point', drawn[0].score, 50);
 }
 
 /* ---- only the player's own moves count ---- */

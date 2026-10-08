@@ -325,6 +325,94 @@ export function aggregateScores(games: AnalysedGame[], minGames = 3): AxisScores
   return out;
 }
 
+/**
+ * Games in one opening before it is worth scoring.
+ *
+ * Two is thin and the table says so by printing the count beside every row.
+ * The alternative is a bar high enough that almost nobody clears it: a player
+ * with twenty games spreads them over a dozen openings, and an opening card
+ * that stays empty until the fiftieth game is not a feature.
+ */
+export const MIN_OPENING_GAMES = 2;
+
+export interface OpeningScore {
+  openingId: string;
+  name: string;
+  games: number;
+  /** Result percentage across those games — a win is 100, a draw 50. */
+  score: number;
+  /** Median opening-phase score, on the same 0..100 scale as the axis. */
+  opening: number | null;
+  /** What the band scores in the opening phase, across all of its openings. */
+  typical: number | null;
+  /** Opening-phase score minus typical. Negative is worse than the band. */
+  gap: number | null;
+}
+
+function resultPoints(result: string, hero: Color): number {
+  if (result === '1/2-1/2') return 50;
+  if (result === '1-0') return hero === 'w' ? 100 : 0;
+  if (result === '0-1') return hero === 'b' ? 100 : 0;
+  return 50;
+}
+
+/**
+ * Each opening the player has played, scored against their rating band.
+ *
+ * The baseline is the band's opening-phase median — how players at this rating
+ * handle the opening in general, not how they handle *this* opening. That
+ * distinction is real and the interface has to carry it: across 300 measured
+ * games the commonest single opening appeared 19 times spread over five bands,
+ * and at most three openings in any band reached five games. A per-opening
+ * baseline would be built from samples of two or three, which is a number with
+ * a confidence interval wider than the scale it sits on.
+ *
+ * What the comparison does answer is worth having on its own: of the openings
+ * you play, which ones leave you worse placed than you usually are by the time
+ * the opening is over.
+ */
+export function scoreOpenings(
+  games: AnalysedGame[],
+  band: BandStats | null,
+  minGames = MIN_OPENING_GAMES,
+): OpeningScore[] {
+  const typical = band?.median.opening ?? null;
+  const by = new Map<string, { name: string; results: number[]; opening: number[] }>();
+
+  for (const game of games) {
+    if (!game.openingId) continue;
+    const entry = by.get(game.openingId)
+      ?? { name: game.openingName ?? game.openingId, results: [], opening: [] };
+    entry.results.push(resultPoints(game.meta.result, game.hero));
+    const scored = scoreGame(game, game.hero).opening;
+    if (scored !== null) entry.opening.push(scored);
+    by.set(game.openingId, entry);
+  }
+
+  return [...by.entries()]
+    .map(([openingId, e]) => {
+      const enough = e.results.length >= minGames && e.opening.length >= minGames;
+      const opening = enough ? percentile([...e.opening].sort((a, b) => a - b), 0.5) : null;
+      return {
+        openingId,
+        name: e.name,
+        games: e.results.length,
+        score: Math.round((e.results.reduce((a, b) => a + b, 0) / e.results.length) * 10) / 10,
+        opening,
+        typical,
+        gap: opening !== null && typical !== null ? opening - typical : null,
+      };
+    })
+    /* Worst against the band first, then whatever could not be scored, so the
+     * row worth reading is the one at the top. */
+    .sort((a, b) => {
+      if (a.gap === null && b.gap === null) return b.games - a.games;
+      if (a.gap === null) return 1;
+      if (b.gap === null) return -1;
+      return a.gap - b.gap;
+    });
+}
+
 export interface LossBreakdown {
   /** Win-probability points the player gave away across every game. */
   total: number;
