@@ -21,7 +21,7 @@ export const AXES = [
   { id: 'endgame', label: 'Endgame', hint: 'Technique once most of the pieces are traded off.' },
   { id: 'tactics', label: 'Tactics', hint: 'Win probability handed over to forks, pins, hanging pieces and mates, per 40-move game.' },
   { id: 'errors', label: 'Serious errors', hint: 'How often a move threw away a real chunk of the game. Blunders count once, mistakes count half, and one blunder in a 40-move game costs 20 points.' },
-  { id: 'conversion', label: 'Converting', hint: 'How much of a winning position you handed back, per 40-move game.' },
+  { id: 'conversion', label: 'Converting', hint: 'The most win probability you handed back from a winning position. 100 means a lead you never gave up.' },
 ] as const;
 
 export type AxisId = (typeof AXES)[number]['id'];
@@ -31,6 +31,17 @@ const MIN_MOVES = 4;
 
 /** Win percentage above which a position counts as one you ought to be winning. */
 const WINNING = 70;
+
+/**
+ * Winning positions needed before converting is a fair thing to ask about.
+ *
+ * A single position at 70% that evaporates is a chance missed, and the tactics
+ * and error axes already answer for it. Two is the cheapest bar that stops one
+ * ply of engine noise being read as a won game, and — unlike a bar on how
+ * *long* the advantage lasted — it does not throw out the fast collapses, which
+ * are the whole reason the axis exists.
+ */
+const MIN_WINNING_POSITIONS = 2;
 
 /** A game's worth of moves, so every rate is quoted per game rather than as a fraction. */
 const TYPICAL_GAME = 40;
@@ -53,7 +64,7 @@ function isTactical(tag: MotifTag): boolean {
 }
 
 /**
- * Win probability a 40-move game can shed on one axis before it scores zero.
+ * Win probability a 40-move game can shed to tactics before it scores zero.
  *
  * The number has to come from somewhere, and an unbounded sum is not an
  * option: clipped at zero, "a bit careless" and "catastrophic" become the same
@@ -71,6 +82,63 @@ function rateScore(lossPoints: number, moves: number): number {
   if (moves <= 0) return 100;
   const perGame = (lossPoints / moves) * TYPICAL_GAME;
   return Math.max(0, Math.min(100, Math.round(100 - (perGame / FULL_COST) * 100)));
+}
+
+/**
+ * The hero's win percentage through the game, in order.
+ *
+ * Both sides of each of their own moves: a move that throws the game away is
+ * visible only in the second number, and the position after the opponent's
+ * reply arrives as the first number of the move after.
+ */
+function winTrajectory(mine: AnalysedMove[], color: Color): number[] {
+  const out: number[] = [];
+  for (const m of mine) {
+    out.push(winPctFor(m.evalBefore, color));
+    out.push(winPctFor(m.evalAfter, color));
+  }
+  return out;
+}
+
+/**
+ * The most win probability handed back from a winning high-water mark.
+ *
+ * Drawdown from the running peak, not the sum of per-move losses. The sum
+ * measured churn rather than conversion: an evaluation that wobbles between
+ * 90% and 86% for twenty moves adds up to a large number while nothing was
+ * ever given away, and that is the ordinary shape of a game somebody is
+ * winning. Worse, it made the axis quietest about its own worst case — a player
+ * who collapsed quickly spent few moves winning, so there was little to sum,
+ * and with fewer than four such moves the axis declined to score them at all.
+ * Across 300 measured games the old axis also moved 28 points between samples,
+ * which is what measuring noise looks like.
+ *
+ * Measured against the running peak rather than the game's best moment, or a
+ * later recovery would paper over the collapse that came before it.
+ *
+ * Counted in win-probability points and deliberately not divided by the
+ * advantage that was there to lose. That scale is already the normalisation —
+ * it is why this file measures in win percentage rather than centipawns, and
+ * why the tactics axis and the loss breakdown are counted the same way.
+ * Dividing by the surplus on top of it normalises twice, and measured over the
+ * same 300 games that put 56% of sub-1100 games on exactly zero: at a peak of
+ * 72% there are only 22 points to give back, so any ordinary swing saturates.
+ *
+ * What this says is how much was handed back, not whether the win was finally
+ * lost. Giving back 45 points and drawing scores better than giving back 90 and
+ * losing, which is the intended ordering; the result itself is on the report
+ * beside it.
+ */
+function worstGiveBack(trajectory: number[]): number | null {
+  let peak = -1;
+  let worst: number | null = null;
+  for (const now of trajectory) {
+    if (now > peak) peak = now;
+    if (peak < WINNING) continue;
+    const given = peak - now;
+    if (worst === null || given > worst) worst = given;
+  }
+  return worst;
 }
 
 export type AxisScores = Record<AxisId, number | null>;
@@ -91,7 +159,9 @@ export function scoreGame(game: AnalysedGame, color: Color): AxisScores {
    * scoring it out of positions that were never winning would punish a player
    * for having a hard game.
    */
-  const winning = mine.filter((m) => winPctFor(m.evalBefore, color) >= WINNING);
+  const trajectory = winTrajectory(mine, color);
+  const everWinning = trajectory.filter((w) => w >= WINNING).length;
+  const giveBack = everWinning >= MIN_WINNING_POSITIONS ? worstGiveBack(trajectory) : null;
 
   return {
     opening: phaseScore('opening'),
@@ -113,14 +183,13 @@ export function scoreGame(game: AnalysedGame, color: Color): AxisScores {
         ) * TYPICAL_GAME * PER_BLUNDER,
       )),
     /*
-     * Divided by the whole game rather than by the winning moves alone: a
-     * player who was winning for five moves and threw it away should not be
-     * measured on a five-move denominator, which would read as a total
-     * collapse whatever they did next.
+     * A drawdown rather than a rate, so the number means the same thing in a
+     * 20-move game and a 70-move one — and so the axis answers loudest in the
+     * case it is named for, a won game given away.
      */
-    conversion: winning.length < MIN_MOVES
+    conversion: mine.length < MIN_MOVES || giveBack === null
       ? null
-      : rateScore(winning.reduce((n, m) => n + m.winLoss, 0), mine.length),
+      : Math.max(0, Math.min(100, Math.round(100 - giveBack))),
   };
 }
 

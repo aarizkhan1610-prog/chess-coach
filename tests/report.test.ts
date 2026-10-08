@@ -22,7 +22,7 @@ const eq = (n: string, got: unknown, want: unknown) =>
 /* ---- fixtures ---- */
 
 function move(over: Partial<AnalysedMove> & { color: Color; phase: Phase }): AnalysedMove {
-  return {
+  const m: AnalysedMove = {
     ply: 0, moveNumber: 1, san: 'e4', uci: 'e2e4',
     fenBefore: '', fenAfter: '',
     evalBefore: { cp: 0, mate: null }, evalAfter: { cp: 0, mate: null },
@@ -31,6 +31,35 @@ function move(over: Partial<AnalysedMove> & { color: Color; phase: Phase }): Ana
     secondBestWinLoss: null, alternativesSan: [], motifs: [], secondsSpent: null, stableFromDepth: 0,
     ...over,
   };
+  /*
+   * A move given no "after" left the evaluation where it found it. Defaulting
+   * it to equality instead made every winning fixture read as a crash to 50%
+   * on every move, which went unnoticed for as long as nothing scored from it.
+   */
+  if (!over.evalAfter) m.evalAfter = m.evalBefore;
+  return m;
+}
+
+const K = 0.00368208;
+/** Centipawns that give White this win percentage, for building trajectories. */
+function cpFor(winPct: number): number {
+  return Math.round(-Math.log(100 / Math.max(0.5, Math.min(99.5, winPct)) - 1) / K);
+}
+
+/**
+ * A game from White's win percentage at the start of each of their moves.
+ * Whatever is lost within the move shows up as that move's own "after".
+ */
+function trajectory(winPcts: number[], phase: Phase = 'middlegame'): AnalysedGame {
+  return game(winPcts.map((w, i) => {
+    const next = winPcts[i + 1] ?? w;
+    return move({
+      color: 'w', phase, ply: i * 2, moveNumber: i + 1,
+      evalBefore: { cp: cpFor(w), mate: null },
+      evalAfter: { cp: cpFor(Math.min(w, next)), mate: null },
+      winLoss: Math.max(0, w - next),
+    });
+  }));
 }
 
 function game(moves: AnalysedMove[], accuracyByPhase?: Partial<Record<Phase, number>>): AnalysedGame {
@@ -64,20 +93,65 @@ const many = (n: number, over: Partial<AnalysedMove> & { color: Color; phase: Ph
   eq('three moves is too few to score a phase', scoreGame(short, 'w').opening, null);
 }
 
-/* ---- converting is only asked about when there was something to convert ---- */
+/* ---- converting ---- */
 {
-  const level = game(many(10, { color: 'w', phase: 'middlegame' }));
-  eq('never winning means conversion is not scored', scoreGame(level, 'w').conversion, null);
+  const conv = (winPcts: number[]) => scoreGame(trajectory(winPcts), 'w').conversion;
+  const atLeast = (n: string, got: number | null, floor: number) =>
+    (got !== null && got >= floor ? ok(n, String(got)) : bad(n, `got ${got}, wanted >= ${floor}`));
+  const atMost = (n: string, got: number | null, ceil: number) =>
+    (got !== null && got <= ceil ? ok(n, String(got)) : bad(n, `got ${got}, wanted <= ${ceil}`));
 
-  const winning = game(many(10, { color: 'w', phase: 'middlegame', evalBefore: { cp: 600, mate: null } }));
-  const s = scoreGame(winning, 'w');
-  if (typeof s.conversion === 'number') ok('a winning position is scored for conversion', String(s.conversion));
-  else bad('a winning position should be scored for conversion');
+  eq('never winning means conversion is not scored', conv([50, 48, 52, 49, 51, 50, 47, 53]), null);
 
-  const thrown = game(many(10, { color: 'w', phase: 'middlegame', evalBefore: { cp: 600, mate: null }, winLoss: 5 }));
-  const lost = scoreGame(thrown, 'w').conversion as number;
-  if (lost < (s.conversion as number)) ok('throwing a win away scores lower', `${lost} < ${s.conversion}`);
-  else bad('throwing a win away should score lower', `${lost} vs ${s.conversion}`);
+  /* One position over the line and gone again is a chance missed, not a
+   * conversion — the error and tactics axes answer for that one. */
+  eq('a single winning position is not a conversion', conv([50, 52, 75, 50, 48, 51, 49, 50]), null);
+
+  atLeast('holding a won game scores near the top', conv([90, 88, 91, 89, 92, 90, 93, 95, 98, 99]), 85);
+  atLeast('a short decisive game is not punished for being short', conv([80, 86, 91, 95, 98, 99]), 90);
+
+  /*
+   * The defect this axis was rebuilt for. Summing per-move losses made the
+   * worst case the quietest: collapse quickly and there were barely any
+   * winning moves to sum, so the axis either flattered the player or — with
+   * fewer than four winning moves — declined to score them at all.
+   */
+  atMost('handing the whole thing back scores near the floor', conv([93, 88, 80, 70, 55, 40, 25, 10, 4, 1]), 12);
+  atMost('a fast collapse is still scored', conv([50, 85, 92, 20, 10, 5, 3, 2]), 12);
+
+  /* Giving back more is worse than giving back a lot, which is the ordering a
+   * single capped share could not express — both came out at zero. */
+  const drawn = conv([95, 90, 84, 77, 70, 62, 55, 50, 50, 50]);
+  const crushed = conv([95, 90, 80, 60, 40, 20, 10, 4, 2, 1]);
+  if (drawn !== null && crushed !== null && drawn > crushed + 20) {
+    ok('giving back the win beats giving back the win and more', `${drawn} vs ${crushed}`);
+  } else {
+    bad('giving back the win should beat being crushed after', `${drawn} vs ${crushed}`);
+  }
+
+  /* Measured against the running peak, so a later recovery cannot bury it. */
+  atMost('giving it back and winning anyway still counts', conv([95, 70, 52, 60, 80, 92, 97, 99]), 65);
+
+  /* Churn is not conversion: an evaluation that wobbles while never dropping
+   * below its own winning floor gave nothing away. */
+  const churn = conv([90, 86, 91, 87, 92, 88, 93, 89, 94, 90]);
+  atLeast('a wobbling evaluation is not a give-back', churn, 80);
+
+  const collapse = drawn;
+  if (collapse !== null && churn !== null && collapse < churn - 30) {
+    ok('churn and collapse are far apart', `${churn} vs ${collapse}`);
+  } else {
+    bad('churn and collapse should be far apart', `${churn} vs ${collapse}`);
+  }
+
+  /* Scale independence: the same shape over twice the moves is the same score. */
+  const shortHold = conv([88, 85, 90, 87, 92, 94]);
+  const longHold = conv(Array.from({ length: 40 }, (_, i) => 88 + (i % 2 ? 0 : 3)));
+  if (shortHold !== null && longHold !== null && Math.abs(shortHold - longHold) <= 10) {
+    ok('game length does not move the score', `${shortHold} vs ${longHold}`);
+  } else {
+    bad('game length should not move the score', `${shortHold} vs ${longHold}`);
+  }
 }
 
 /* ---- only the player's own moves count ---- */
