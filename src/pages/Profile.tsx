@@ -125,6 +125,12 @@ export function ProfilePage() {
                   games at {band.band.label} were scored — so the two shapes are directly comparable rather
                   than merely drawn together.
                 </p>
+                <p className="small dim">
+                  There is no endgame axis. Only about a fifth of games reach an endgame that is still a
+                  contest, and measured over 534 games the figure moved too much between samples to order
+                  the rating bands correctly. Your endgame accuracy is below, where it is a fact about
+                  these games rather than a comparison.
+                </p>
                 <ul className="report-gaps">
                   {[...drawn]
                     .map((a) => ({ axis: a, gap: (shape[a.id] as number) - (band.band.median[a.id] as number) }))

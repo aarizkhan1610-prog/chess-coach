@@ -35,7 +35,6 @@ export interface Recommendation {
 const AXIS_LESSON: Record<AxisId, MotifTag> = {
   opening: 'development',
   middlegame: 'lost-the-initiative',
-  endgame: 'endgame-technique',
   tactics: 'hanging-piece',
   errors: 'hanging-piece',
   conversion: 'converting-advantage',

@@ -2,7 +2,7 @@
  *
  * Median and quartile scores for real rated games, by rating band, measured
  * with the same scoring code that runs on the user's own games. Built on
- * 2026-10-08 at depth 12.
+ * 2026-10-09 at depth 12.
  */
 import type { BandStats } from './report';
 
@@ -11,193 +11,173 @@ export const BENCHMARK: BandStats[] = [
     "from": 0,
     "to": 1099,
     "label": "Under 1100",
-    "games": 60,
+    "games": 107,
     "median": {
-      "opening": 78,
+      "opening": 77,
       "middlegame": 79,
-      "endgame": 93,
-      "tactics": 55,
-      "errors": 71,
-      "conversion": 44
+      "tactics": 51,
+      "errors": 56,
+      "conversion": 35
     },
     "p25": {
-      "opening": 65,
-      "middlegame": 63,
-      "endgame": 90,
-      "tactics": 30,
-      "errors": 52,
-      "conversion": 22
+      "opening": 69,
+      "middlegame": 68,
+      "tactics": 31,
+      "errors": 33,
+      "conversion": 17
     },
     "p75": {
-      "opening": 83,
-      "middlegame": 91,
-      "endgame": 96,
-      "tactics": 77,
-      "errors": 94,
-      "conversion": 92
+      "opening": 85,
+      "middlegame": 89,
+      "tactics": 68,
+      "errors": 77,
+      "conversion": 88
     },
     "n": {
-      "opening": 60,
-      "middlegame": 55,
-      "endgame": 11,
-      "tactics": 60,
-      "errors": 60,
-      "conversion": 32
+      "opening": 107,
+      "middlegame": 97,
+      "tactics": 107,
+      "errors": 107,
+      "conversion": 45
     }
   },
   {
     "from": 1100,
     "to": 1399,
     "label": "1100–1399",
-    "games": 60,
+    "games": 110,
     "median": {
-      "opening": 85,
-      "middlegame": 72,
-      "endgame": 88,
-      "tactics": 60,
-      "errors": 74,
-      "conversion": 46
+      "opening": 86,
+      "middlegame": 75,
+      "tactics": 58,
+      "errors": 60,
+      "conversion": 54
     },
     "p25": {
       "opening": 78,
-      "middlegame": 60,
-      "endgame": 84,
-      "tactics": 40,
-      "errors": 52,
-      "conversion": 16
+      "middlegame": 64,
+      "tactics": 37,
+      "errors": 31,
+      "conversion": 23
     },
     "p75": {
-      "opening": 89,
-      "middlegame": 81,
-      "endgame": 95,
-      "tactics": 73,
-      "errors": 100,
-      "conversion": 85
+      "opening": 92,
+      "middlegame": 83,
+      "tactics": 75,
+      "errors": 76,
+      "conversion": 92
     },
     "n": {
-      "opening": 60,
-      "middlegame": 58,
-      "endgame": 11,
-      "tactics": 60,
-      "errors": 60,
-      "conversion": 27
+      "opening": 110,
+      "middlegame": 107,
+      "tactics": 110,
+      "errors": 110,
+      "conversion": 47
     }
   },
   {
     "from": 1400,
     "to": 1699,
     "label": "1400–1699",
-    "games": 60,
+    "games": 113,
     "median": {
-      "opening": 87,
-      "middlegame": 82,
-      "endgame": 92,
-      "tactics": 76,
-      "errors": 82,
-      "conversion": 70
+      "opening": 88,
+      "middlegame": 77,
+      "tactics": 61,
+      "errors": 60,
+      "conversion": 63
     },
     "p25": {
-      "opening": 78,
-      "middlegame": 72,
-      "endgame": 85,
-      "tactics": 54,
-      "errors": 65,
-      "conversion": 33
+      "opening": 79,
+      "middlegame": 66,
+      "tactics": 43,
+      "errors": 38,
+      "conversion": 28
     },
     "p75": {
       "opening": 93,
-      "middlegame": 89,
-      "endgame": 94,
-      "tactics": 91,
-      "errors": 100,
+      "middlegame": 86,
+      "tactics": 78,
+      "errors": 79,
       "conversion": 89
     },
     "n": {
-      "opening": 60,
-      "middlegame": 59,
-      "endgame": 14,
-      "tactics": 60,
-      "errors": 60,
-      "conversion": 40
+      "opening": 113,
+      "middlegame": 106,
+      "tactics": 113,
+      "errors": 113,
+      "conversion": 68
     }
   },
   {
     "from": 1700,
     "to": 1999,
     "label": "1700–1999",
-    "games": 60,
+    "games": 116,
     "median": {
       "opening": 91,
       "middlegame": 82,
-      "endgame": 92,
-      "tactics": 89,
-      "errors": 89,
-      "conversion": 80
+      "tactics": 77,
+      "errors": 77,
+      "conversion": 78
     },
     "p25": {
       "opening": 87,
-      "middlegame": 74,
-      "endgame": 86,
-      "tactics": 70,
-      "errors": 71,
-      "conversion": 58
+      "middlegame": 72,
+      "tactics": 57,
+      "errors": 53,
+      "conversion": 54
     },
     "p75": {
       "opening": 93,
-      "middlegame": 91,
-      "endgame": 95,
-      "tactics": 100,
-      "errors": 100,
-      "conversion": 93
+      "middlegame": 90,
+      "tactics": 87,
+      "errors": 92,
+      "conversion": 92
     },
     "n": {
-      "opening": 60,
-      "middlegame": 58,
-      "endgame": 11,
-      "tactics": 60,
-      "errors": 60,
-      "conversion": 55
+      "opening": 116,
+      "middlegame": 113,
+      "tactics": 116,
+      "errors": 116,
+      "conversion": 96
     }
   },
   {
     "from": 2000,
     "to": 9999,
     "label": "2000+",
-    "games": 60,
+    "games": 88,
     "median": {
       "opening": 96,
-      "middlegame": 89,
-      "endgame": 94,
-      "tactics": 100,
-      "errors": 100,
-      "conversion": 92
+      "middlegame": 90,
+      "tactics": 89,
+      "errors": 91,
+      "conversion": 87
     },
     "p25": {
       "opening": 95,
       "middlegame": 84,
-      "endgame": 84,
-      "tactics": 93,
-      "errors": 89,
+      "tactics": 81,
+      "errors": 86,
       "conversion": 68
     },
     "p75": {
       "opening": 97,
-      "middlegame": 92,
-      "endgame": 96,
-      "tactics": 100,
-      "errors": 100,
+      "middlegame": 93,
+      "tactics": 95,
+      "errors": 96,
       "conversion": 96
     },
     "n": {
-      "opening": 60,
-      "middlegame": 58,
-      "endgame": 18,
-      "tactics": 60,
-      "errors": 60,
-      "conversion": 30
+      "opening": 88,
+      "middlegame": 86,
+      "tactics": 88,
+      "errors": 88,
+      "conversion": 44
     }
   }
 ];
 
 /** The day the numbers above were measured, so the interface can say so. */
-export const BENCHMARK_BUILT = '2026-10-08';
+export const BENCHMARK_BUILT = '2026-10-09';

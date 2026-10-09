@@ -87,8 +87,10 @@ const many = (n: number, over: Partial<AnalysedMove> & { color: Color; phase: Ph
 {
   const g = game([...many(8, { color: 'w', phase: 'opening' }), ...many(8, { color: 'w', phase: 'middlegame' })]);
   const s = scoreGame(g, 'w');
-  eq('an unplayed endgame scores null', s.endgame, null);
   eq('a played opening scores a number', typeof s.opening, 'number');
+  /* The endgame is not an axis: it could not order the rating bands it would
+   * be drawn against. Its accuracy is reported, just not compared. */
+  eq('there is no endgame axis', AXES.some((a) => a.id === 'endgame'), false);
   const short = game(many(3, { color: 'w', phase: 'opening' }));
   eq('three moves is too few to score a phase', scoreGame(short, 'w').opening, null);
 }
@@ -152,6 +154,51 @@ const many = (n: number, over: Partial<AnalysedMove> & { color: Color; phase: Ph
   } else {
     bad('game length should not move the score', `${shortHold} vs ${longHold}`);
   }
+}
+
+/* ---- tactics also counts what the detector never named ---- */
+{
+  /*
+   * The motif detector only runs above 8 win-probability points, so half of
+   * all games above 2000 carried no tactical motif at all and scored a flat
+   * 100. A move answered by a capture or a check is the same damage seen from
+   * the other side, and every move already stores that reply.
+   */
+  const quiet = game([
+    ...many(39, { color: 'w', phase: 'middlegame' }),
+    move({ color: 'w', phase: 'middlegame', winLoss: 40, refutationSan: ['Rd8'] }),
+  ]);
+  eq('a quiet punishment is not tactics', scoreGame(quiet, 'w').tactics, 100);
+
+  const captured = game([
+    ...many(39, { color: 'w', phase: 'middlegame' }),
+    move({ color: 'w', phase: 'middlegame', winLoss: 40, refutationSan: ['Nxe5'] }),
+  ]);
+  const checked = game([
+    ...many(39, { color: 'w', phase: 'middlegame' }),
+    move({ color: 'w', phase: 'middlegame', winLoss: 40, refutationSan: ['Qh5+'] }),
+  ]);
+  const mated = game([
+    ...many(39, { color: 'w', phase: 'middlegame' }),
+    move({ color: 'w', phase: 'middlegame', winLoss: 40, refutationSan: ['Rd8#'] }),
+  ]);
+  eq('a move answered by a capture counts', scoreGame(captured, 'w').tactics, 84);
+  eq('so does one answered by a check', scoreGame(checked, 'w').tactics, 84);
+  eq('and one answered by mate', scoreGame(mated, 'w').tactics, 84);
+
+  /* The two sources must not double-count the same move. */
+  const both = game([
+    ...many(39, { color: 'w', phase: 'middlegame' }),
+    move({ color: 'w', phase: 'middlegame', winLoss: 40, motifs: ['allowed-fork'] as MotifTag[], refutationSan: ['Nxe5+'] }),
+  ]);
+  eq('a move that is both is counted once', scoreGame(both, 'w').tactics, 84);
+
+  /* A forcing reply to a move that cost nothing is just a forcing reply. */
+  const harmless = game([
+    ...many(39, { color: 'w', phase: 'middlegame' }),
+    move({ color: 'w', phase: 'middlegame', winLoss: 0, refutationSan: ['Nxe5+'] }),
+  ]);
+  eq('a forcing reply that cost nothing costs nothing', scoreGame(harmless, 'w').tactics, 100);
 }
 
 /* ---- openings, against the band ---- */
@@ -249,20 +296,20 @@ const many = (n: number, over: Partial<AnalysedMove> & { color: Color; phase: Ph
   const clean = game(many(8, { color: 'w', phase: 'middlegame' }));
   eq('a clean game scores full tactics', scoreGame(clean, 'w').tactics, 100);
 
-  // Forty own moves losing forty win-percent to a fork: a fifth of the
-  // two-hundred-point scale, so a fifth off the score.
+  // Forty own moves losing forty win-percent to a fork: forty of the
+  // two-hundred-and-fifty-point scale, so sixteen off the score.
   const forked = game([
     ...many(39, { color: 'w', phase: 'middlegame' }),
     move({ color: 'w', phase: 'middlegame', winLoss: 40, motifs: ['allowed-fork'] as MotifTag[] }),
   ]);
-  eq('a fork costs tactics', scoreGame(forked, 'w').tactics, 80);
+  eq('a fork costs tactics', scoreGame(forked, 'w').tactics, 84);
 
   // The same damage over half as many moves is twice the rate.
   const denser = game([
     ...many(19, { color: 'w', phase: 'middlegame' }),
     move({ color: 'w', phase: 'middlegame', winLoss: 40, motifs: ['allowed-fork'] as MotifTag[] }),
   ]);
-  eq('tactics is a rate, not a total', scoreGame(denser, 'w').tactics, 60);
+  eq('tactics is a rate, not a total', scoreGame(denser, 'w').tactics, 68);
 
   // And it no longer bottoms out the moment a game goes badly: the old scale
   // clipped everything past a hundred points to zero, so careless and
@@ -272,7 +319,7 @@ const many = (n: number, over: Partial<AnalysedMove> & { color: Color; phase: Ph
     ...many(4, { color: 'w', phase: 'middlegame', winLoss: 30, motifs: ['allowed-fork'] as MotifTag[] }),
   ]);
   const ruinous = game(many(40, { color: 'w', phase: 'middlegame', winLoss: 30, motifs: ['allowed-fork'] as MotifTag[] }));
-  eq('a rough game still scores above the floor', scoreGame(rough, 'w').tactics, 40);
+  eq('a rough game still scores above the floor', scoreGame(rough, 'w').tactics, 52);
   eq('a ruinous one reaches it', scoreGame(ruinous, 'w').tactics, 0);
   eq('a fork that was not a blunder leaves the blunder axis alone', scoreGame(forked, 'w').errors, 100);
   eq('a tactical error does not touch the phase scores', scoreGame(forked, 'w').opening, null);
@@ -333,11 +380,40 @@ const many = (n: number, over: Partial<AnalysedMove> & { color: Color; phase: Ph
   ]);
   eq('blunders and mistakes add up', scoreGame(both, 'w').errors, 40);
 
+  /*
+   * Inaccuracies count, at a quarter. They were ignored, which left the axis
+   * reading a flat 100 for the median game above 2000 — half of those games
+   * contain no blunder and no mistake, so the benchmark was telling every
+   * strong player that typical was perfect.
+   */
   const soft = game([
     ...many(36, { color: 'w', phase: 'middlegame' }),
     ...many(4, { color: 'w', phase: 'middlegame', verdict: 'inaccuracy', winLoss: 12 }),
   ]);
-  eq('inaccuracies are not serious errors', scoreGame(soft, 'w').errors, 100);
+  eq('inaccuracies count, at a quarter', scoreGame(soft, 'w').errors, 80);
+
+  const oneMistake = game([
+    ...many(39, { color: 'w', phase: 'middlegame' }),
+    move({ color: 'w', phase: 'middlegame', verdict: 'mistake', winLoss: 22 }),
+  ]);
+  const twoInaccuracies = game([
+    ...many(38, { color: 'w', phase: 'middlegame' }),
+    ...many(2, { color: 'w', phase: 'middlegame', verdict: 'inaccuracy', winLoss: 12 }),
+  ]);
+  eq('two inaccuracies weigh what one mistake does',
+    scoreGame(twoInaccuracies, 'w').errors, scoreGame(oneMistake, 'w').errors);
+
+  /* The ordering that matters: nothing below a blunder may outrank one. */
+  const blunderOnly = game([
+    ...many(39, { color: 'w', phase: 'middlegame' }),
+    move({ color: 'w', phase: 'middlegame', verdict: 'blunder', winLoss: 45 }),
+  ]);
+  const threeInaccuracies = game([
+    ...many(37, { color: 'w', phase: 'middlegame' }),
+    ...many(3, { color: 'w', phase: 'middlegame', verdict: 'inaccuracy', winLoss: 12 }),
+  ]);
+  eq('three inaccuracies still beat one blunder',
+    (scoreGame(threeInaccuracies, 'w').errors as number) > (scoreGame(blunderOnly, 'w').errors as number), true);
 }
 
 /* ---- every axis stays inside the scale ---- */
@@ -362,10 +438,11 @@ const many = (n: number, over: Partial<AnalysedMove> & { color: Color; phase: Ph
 
 /* ---- summarising a band ---- */
 {
-  // Six games: every one scores the opening, only four reach an endgame.
+  // Six games: every one scores the opening, only four say anything about
+  // tactics, and none was ever winning.
   const scored: AxisScores[] = [60, 65, 70, 75, 80, 85].map((v, i) => ({
-    opening: v, middlegame: v, tactics: v, errors: v,
-    endgame: i < 4 ? v : null,
+    opening: v, middlegame: v, errors: v,
+    tactics: i < 4 ? v : null,
     conversion: null,
   }));
   const s = summarise(BANDS[1], scored);
@@ -379,9 +456,9 @@ const many = (n: number, over: Partial<AnalysedMove> & { color: Color; phase: Ph
    * measured must not come back as zero: a benchmark of zero sits on the
    * centre of the chart and makes any score at all look exceptional.
    */
-  eq('an under-sampled axis is null, not zero', s.median.endgame, null);
+  eq('an under-sampled axis is null, not zero', s.median.tactics, null);
   eq('an axis nobody could answer is null, not zero', s.median.conversion, null);
-  eq('its sample size is still reported', s.n.endgame, 4);
+  eq('its sample size is still reported', s.n.tactics, 4);
 }
 
 /* ---- the chart only draws what both sides can answer ---- */

@@ -15,12 +15,32 @@ import { winPctFor } from '../chess/evaluation';
  * anything, which is common in a single game and must never be drawn as zero.
  */
 
+/*
+ * The endgame is not here, and that is a measurement rather than an oversight.
+ *
+ * Scored as accuracy it could not tell a beginner from a master — its median
+ * ran 94, 93, 93, 91, 95 from the bottom band to the top, four points of
+ * spread across the whole rating range, because accuracy comes from win
+ * probability and win probability barely moves in a position that is already
+ * decided, which most endgames are.
+ *
+ * Restricting it to endgames that were still a contest fixed that and broke
+ * something worse. Only about a fifth of games contain one, so the axis had a
+ * fifth of the sample of every other, and across two disjoint samples of
+ * roughly 300 games its band medians moved by 22 points against a spread of
+ * 27 — the only axis here whose noise rivals its signal, and the only one that
+ * ranked the 1700s below the 1400s. An axis that cannot order the bands it is
+ * drawn against is worse than no axis, because it looks like a finding.
+ *
+ * Endgame accuracy is still on the report, in the phase card and the loss
+ * breakdown, where it is a number about these games rather than a comparison
+ * against players it cannot reliably be compared to.
+ */
 export const AXES = [
   { id: 'opening', label: 'Opening', hint: 'Getting pieces out and claiming the centre.' },
   { id: 'middlegame', label: 'Middlegame', hint: 'Play once the pieces are out and the position is sharp.' },
-  { id: 'endgame', label: 'Endgame', hint: 'Technique once most of the pieces are traded off.' },
-  { id: 'tactics', label: 'Tactics', hint: 'Win probability handed over to forks, pins, hanging pieces and mates, per 40-move game.' },
-  { id: 'errors', label: 'Serious errors', hint: 'How often a move threw away a real chunk of the game. Blunders count once, mistakes count half, and one blunder in a 40-move game costs 20 points.' },
+  { id: 'tactics', label: 'Tactics', hint: 'Win probability handed over to moves that were named as a tactical error or punished by force, per 40-move game.' },
+  { id: 'errors', label: 'Serious errors', hint: 'How often a move threw away a real chunk of the game. Blunders count once, mistakes half, inaccuracies a quarter; one blunder in a 40-move game costs 20 points.' },
   { id: 'conversion', label: 'Converting', hint: 'The most win probability you handed back from a winning position. 100 means a lead you never gave up.' },
 ] as const;
 
@@ -59,29 +79,67 @@ const PER_BLUNDER = 20;
  */
 const MISTAKE_WEIGHT = 0.5;
 
+/**
+ * And an inaccuracy a quarter.
+ *
+ * Mistakes at half weight moved four bands off the ceiling and left the fifth
+ * on it: the median game above 2000 contains neither a blunder nor a mistake,
+ * so the axis scored a flat 100 and the benchmark told every strong player
+ * that typical was perfect. Inaccuracies are the next rung down and there are
+ * enough of them in a strong game for the statistic to move — measured over
+ * 300 games this takes the top band from 100 to 90, and the share of games
+ * sitting exactly on the ceiling from 38% to 11%.
+ */
+const INACCURACY_WEIGHT = 0.25;
+
+/**
+ * A move that cost something and was answered by force.
+ *
+ * The motif detector only runs on moves that lost 8 win-probability points or
+ * more, which is the right bar for telling somebody they keep walking into
+ * pins, but it means the tactics axis could only see tactical damage above
+ * that line. Half of all games above 2000 contain none, so the axis read a
+ * flat 100 there.
+ *
+ * Lowering the detector's own bar was the obvious fix and is the wrong one
+ * twice over: at a gate of 4 it produces 43% more tags and at 2 nearly twice
+ * as many, which turns the weakness list into a list of trivia — and every
+ * game already in somebody's library keeps the tags it was analysed with, so
+ * their games would be scored on a different basis from the benchmark. This
+ * reads a field every move already carries instead.
+ */
+function punishedByForce(move: AnalysedMove): boolean {
+  const reply = move.refutationSan[0];
+  return reply !== undefined && /[x+#]/.test(reply);
+}
+
+
+
 function isTactical(tag: MotifTag): boolean {
   return MOTIF_META[tag].family === 'tactics';
 }
 
 /**
- * Win probability a 40-move game can shed to tactics before it scores zero.
+ * Win probability a 40-move stretch can shed on an axis before it scores zero.
  *
  * The number has to come from somewhere, and an unbounded sum is not an
  * option: clipped at zero, "a bit careless" and "catastrophic" become the same
- * reading, and most games at the lower ratings sit on the floor. This value was
- * chosen and then checked against the benchmark, which spreads across the range
- * rather than piling up at either end.
+ * reading, and most games at the lower ratings sit on the floor. Each was
+ * chosen and then checked against the benchmark, which has to spread across
+ * the range rather than pile up at either end. Checked over 534 measured
+ * games: at 250 the bands run 51, 58, 61, 77, 89, with 1% of games on the
+ * ceiling and 5% on the floor.
  */
-const FULL_COST = 200;
+const COST_TACTICS = 250;
 
 /**
  * A rate, not a total. Measured per typical-length game so a long game is not
  * punished for being long, which is the same footing the blunder axis uses.
  */
-function rateScore(lossPoints: number, moves: number): number {
+function rateScore(lossPoints: number, moves: number, fullCost: number): number {
   if (moves <= 0) return 100;
   const perGame = (lossPoints / moves) * TYPICAL_GAME;
-  return Math.max(0, Math.min(100, Math.round(100 - (perGame / FULL_COST) * 100)));
+  return Math.max(0, Math.min(100, Math.round(100 - (perGame / fullCost) * 100)));
 }
 
 /**
@@ -166,8 +224,19 @@ export function scoreGame(game: AnalysedGame, color: Color): AxisScores {
   return {
     opening: phaseScore('opening'),
     middlegame: phaseScore('middlegame'),
-    endgame: phaseScore('endgame'),
-    tactics: mine.length < MIN_MOVES ? null : rateScore(lostTo((m) => m.motifs.some(isTactical)), mine.length),
+    /*
+     * Named tactical errors and moves the opponent answered by force, which is
+     * the same damage seen from the other side: the detector names it when it
+     * is big enough to be worth a lesson, and the forcing reply catches the
+     * rest.
+     */
+    tactics: mine.length < MIN_MOVES
+      ? null
+      : rateScore(
+        lostTo((m) => m.motifs.some(isTactical) || punishedByForce(m)),
+        mine.length,
+        COST_TACTICS,
+      ),
     /*
      * A rate rather than a count, so a long game is not punished for being
      * long, expressed per typical-length game because "two blunders a game" is
@@ -178,7 +247,8 @@ export function scoreGame(game: AnalysedGame, color: Color): AxisScores {
       : Math.max(0, Math.round(
         100 - (
           (mine.filter((m) => m.verdict === 'blunder').length
-            + mine.filter((m) => m.verdict === 'mistake').length * MISTAKE_WEIGHT)
+            + mine.filter((m) => m.verdict === 'mistake').length * MISTAKE_WEIGHT
+            + mine.filter((m) => m.verdict === 'inaccuracy').length * INACCURACY_WEIGHT)
           / mine.length
         ) * TYPICAL_GAME * PER_BLUNDER,
       )),

@@ -36,7 +36,7 @@ const MAX_FETCHES = Number(process.env.MAX_FETCHES ?? 70);
  * paying for the crawl again.
  *
  *   CORPUS_OUT=corpus.json npm run build:benchmark   # crawl, and keep the games
- *   CORPUS_IN=corpus.json  npm run build:benchmark   # re-score those games
+ *   CORPUS_IN=a.json,b.json npm run build:benchmark  # re-score, deduplicated
  *
  * Re-scoring offline is the only way to tell a scoring change from a sampling
  * difference: the same 300 games through two formulas is a comparison, two
@@ -163,8 +163,27 @@ export const BENCHMARK_BUILT = '${new Date().toISOString().slice(0, 10)}';
 async function main() {
   /* Re-scoring a kept corpus needs neither the network nor the engine. */
   if (CORPUS_IN) {
-    const corpus = JSON.parse(readFileSync(CORPUS_IN, 'utf8')) as CorpusEntry[];
-    console.log(`Re-scoring ${corpus.length} games from ${CORPUS_IN}`);
+    /*
+     * Several files may be given, comma separated, and are deduplicated by
+     * game: a crawl seeded differently still overlaps, and a game counted
+     * twice would weight one performance double in its band. The id is a hash
+     * of the players, the date and the moves, so it survives separate crawls.
+     */
+    const seenGames = new Set<string>();
+    const corpus: CorpusEntry[] = [];
+    let duplicates = 0;
+    for (const path of CORPUS_IN.split(',').map((x) => x.trim()).filter(Boolean)) {
+      const part = JSON.parse(readFileSync(path, 'utf8')) as CorpusEntry[];
+      for (const entry of part) {
+        const key = `${entry.game.id}:${entry.color}`;
+        if (seenGames.has(key)) { duplicates++; continue; }
+        seenGames.add(key);
+        corpus.push(entry);
+      }
+      console.log(`  ${path}: ${part.length} games`);
+    }
+    console.log(`Re-scoring ${corpus.length} games`
+      + (duplicates ? ` (${duplicates} duplicate${duplicates === 1 ? '' : 's'} dropped)` : ''));
     emit(corpus, null);
     return;
   }
