@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { AnalysedGame, AnalysisDepthPreset, MotifTag, Puzzle, PuzzleProgress } from '../types';
-import { idbStorage } from './idb';
+import { getStorageFault, idbStorage, subscribeStorageFault, type StorageFault } from './idb';
 import { newProgress, review, updateSolverRating } from '../coach/srs';
 
 export type PuzzleOutcome = 'first-try' | 'hinted' | 'failed';
@@ -201,6 +201,17 @@ export function useGames(): AnalysedGame[] {
   const games = useStore((s) => s.games);
   const order = useStore((s) => s.gameOrder);
   return useMemo(() => order.map((id) => games[id]).filter(Boolean), [games, order]);
+}
+
+/**
+ * Whether saving is working, for the banner that says so.
+ *
+ * Read through `useSyncExternalStore` rather than state in a provider: the
+ * fault is raised from inside the storage adapter, which runs underneath the
+ * store it is persisting and cannot reach into React to set anything.
+ */
+export function useStorageFault(): StorageFault {
+  return useSyncExternalStore(subscribeStorageFault, getStorageFault, () => null);
 }
 
 /**

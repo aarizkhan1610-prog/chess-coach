@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useGames, useStore } from '../state/store';
+import { downloadBackup, readBackup, type BackupState } from '../state/backup';
 import { Card, Banner, navigate } from '../components/ui';
 import { DEPTH_PRESETS, type AnalysisDepthPreset } from '../types';
 import { estimateUsage } from '../state/idb';
@@ -16,13 +17,40 @@ export function SettingsPage() {
 
   useEffect(() => { estimateUsage().then(setUsage); }, [games.length]);
 
+  const restoreRef = useRef<HTMLInputElement>(null);
+  /* The file is read and checked before anything is asked, so the question can
+   * say what is actually in it. */
+  const [pending, setPending] = useState<{ state: BackupState; games: number; exportedAt: string | null } | null>(null);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
+  const [restored, setRestored] = useState(false);
+
   function exportData() {
-    const blob = new Blob([JSON.stringify(useStore.getState(), null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `chess-coach-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    downloadBackup(useStore.getState() as unknown as Record<string, unknown>);
+  }
+
+  async function chooseBackup(file: File | undefined) {
+    setRestoreError(null);
+    setRestored(false);
+    if (!file) return;
+    const result = readBackup(await file.text());
+    if (!result.ok) {
+      setPending(null);
+      setRestoreError(result.reason);
+      return;
+    }
+    setPending({ state: result.state, games: result.games, exportedAt: result.exportedAt });
+  }
+
+  /*
+   * Merged rather than replacing the whole state, so the store keeps its own
+   * actions. The keys a backup carries are the data keys and nothing else —
+   * `readBackup` drops the rest, because this object came off somebody's disk.
+   */
+  function applyRestore() {
+    if (!pending) return;
+    useStore.setState(pending.state as Partial<ReturnType<typeof useStore.getState>>);
+    setPending(null);
+    setRestored(true);
   }
 
   return (
@@ -118,6 +146,7 @@ export function SettingsPage() {
             </div>
             <div className="row wrap">
               <button className="btn sm" onClick={exportData}>Export a backup</button>
+              <button className="btn sm" onClick={() => restoreRef.current?.click()}>Restore a backup</button>
               <button
                 className="btn sm danger"
                 disabled={!games.length}
@@ -125,7 +154,67 @@ export function SettingsPage() {
               >
                 Delete all games
               </button>
+              <input
+                ref={restoreRef}
+                type="file"
+                accept="application/json,.json"
+                hidden
+                onChange={(e) => { void chooseBackup(e.target.files?.[0]); e.target.value = ''; }}
+              />
             </div>
+
+            {restoreError && (
+              <div className="banner error" style={{ marginTop: 'var(--space-3)' }}>
+                <div>
+                  <div>{restoreError}</div>
+                  <div className="small dim">Nothing has been changed.</div>
+                </div>
+              </div>
+            )}
+
+            {/*
+              * Restoring replaces a library that cannot be got back, so the
+              * question is asked in the page rather than through a browser
+              * dialog — and it says what is in the file and what is here now,
+              * which is the only way to answer it sensibly.
+              */}
+            {pending && (
+              <div className="banner" style={{ marginTop: 'var(--space-3)' }}>
+                <div>
+                  <div className="bold">
+                    Restore {pending.games} game{pending.games === 1 ? '' : 's'} from this backup?
+                  </div>
+                  <div className="small">
+                    {pending.exportedAt
+                      ? <>Exported {pending.exportedAt.slice(0, 10)}. </>
+                      : <>This file carries no export date. </>}
+                    {games.length > 0
+                      ? <>It replaces the {games.length} game{games.length === 1 ? '' : 's'} in this browser,
+                        along with your puzzle and lesson progress. That cannot be undone — export the
+                        current ones first if you want to keep both.</>
+                      : <>There is nothing in this browser to overwrite.</>}
+                  </div>
+                  <div className="row wrap" style={{ gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
+                    <button className="btn sm primary" onClick={applyRestore}>Restore it</button>
+                    <button className="btn sm ghost" onClick={() => setPending(null)}>Cancel</button>
+                    {games.length > 0 && (
+                      <button className="btn sm" onClick={exportData}>Export the current ones first</button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {restored && (
+              <div className="banner ok" style={{ marginTop: 'var(--space-3)' }}>
+                <div>
+                  <div>Restored. You now have {games.length} game{games.length === 1 ? '' : 's'}.</div>
+                  <button className="btn sm" style={{ marginTop: 8 }} onClick={() => navigate('/report')}>
+                    Open the report
+                  </button>
+                </div>
+              </div>
+            )}
           </Card>
 
           <Card title="What is built in">

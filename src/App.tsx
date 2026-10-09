@@ -1,6 +1,8 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo } from 'react';
-import { useGames, useHydrated, useStore } from './state/store';
+import { useGames, useHydrated, useStorageFault, useStore } from './state/store';
 import { useRoute, Spinner } from './components/ui';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { downloadBackup } from './state/backup';
 import { CoachPage } from './pages/Coach';
 
 /*
@@ -49,10 +51,53 @@ const NAV = [
 ];
 const LEARN = { path: '/basics', icon: '◇', label: 'Learn to play' };
 
+/**
+ * Said out loud, because the alternative is the app lying.
+ *
+ * Every page promises the games are kept on this machine. When storage is
+ * failing that sentence is false, and the player is the only one who can do
+ * anything about it — so the banner is persistent rather than a toast, and it
+ * carries the export, which reads from memory and still works.
+ */
+function StorageBanner({ fault }: { fault: 'read' | 'write' }) {
+  return (
+    <div className="banner error storage-banner">
+      <div>
+        {fault === 'read' ? (
+          <>
+            <div className="bold">Your saved data could not be read.</div>
+            <div className="small">
+              Nothing has been written over it, and saving is switched off until this clears, so what
+              is on disk should be intact. Reloading usually fixes it. Avoid importing anything until
+              it does — this session will not be kept.
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="bold">This browser is not saving your data.</div>
+            <div className="small">
+              The app still works, but anything you do now is lost when you reload. Private browsing
+              and a full disk are the usual causes. Export a backup if you want to keep this session.
+            </div>
+          </>
+        )}
+        <button
+          className="btn sm"
+          style={{ marginTop: 'var(--space-2)' }}
+          onClick={() => downloadBackup(useStore.getState() as unknown as Record<string, unknown>)}
+        >
+          Export a backup
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [parts] = useRoute();
   const settings = useStore((s) => s.settings);
   const hydrated = useHydrated();
+  const storageFault = useStorageFault();
   const games = useGames();
 
   const setSettings = useStore((st) => st.setSettings);
@@ -152,6 +197,7 @@ export default function App() {
       )}
 
       <main className="main">
+        {storageFault && <StorageBanner fault={storageFault} />}
         {!hydrated ? (
           <div className="row" style={{ padding: 40, justifyContent: 'center' }}>
             <Spinner /> <span className="dim">Loading your data…</span>
@@ -164,7 +210,10 @@ export default function App() {
               </div>
             }
           >
-            <Routes parts={parts} />
+            {/* Keyed on the route so leaving a crashed page clears the error. */}
+            <ErrorBoundary resetKey={parts.join('/')}>
+              <Routes parts={parts} />
+            </ErrorBoundary>
           </Suspense>
         )}
       </main>

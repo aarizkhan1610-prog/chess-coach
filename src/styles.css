@@ -1240,3 +1240,22 @@ tr.clickable:hover td { background: var(--surface-2); }
 .loss-track { height: 5px; border-radius: 3px; background: var(--surface-2); margin-top: 5px; overflow: hidden; }
 .loss-fill { height: 100%; border-radius: 3px; background: var(--accent); }
 .loss-fill.muted { background: var(--text-faint); }
+
+/* A storage fault is not a toast: it stays until it is fixed, above the page
+   it is lying about. */
+.storage-banner { margin-bottom: var(--space-4); }
+
+/* The crash panel. Deliberately plain — it renders when the styling of the
+   page it replaced may be part of what went wrong. */
+.crash { border-color: var(--bad); }
+.crash-detail {
+  margin: var(--space-3) 0;
+  padding: var(--space-3);
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 9rem;
+  overflow: auto;
+}
