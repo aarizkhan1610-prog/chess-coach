@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { parsePgn, heroFor, type ParsedGame } from '../chess/pgn';
 import {
   DEPTH_PRESETS, MOTIF_META, estimateSeconds, formatDuration,
@@ -91,12 +91,27 @@ export function ImportPage() {
     setText((prev) => [prev, ...parts].filter(Boolean).join('\n\n'));
   }
 
+  /*
+   * Finished games are already saved, so what a tab close costs now is the
+   * game in flight and the ones not started. That is still worth a word.
+   */
+  useEffect(() => {
+    if (!progress.running) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [progress.running]);
+
   async function startAnalysis() {
     reset();
     setStep('running');
     const jobs = parsed.games.map((g) => ({ parsed: g, hero: heroOf(g) }));
-    const done = await run(jobs, DEPTH_PRESETS[settings.depth].depth);
-    if (done.length) addGames(done);
+    /*
+     * Saved one at a time rather than in a batch at the end. `addGames` keys
+     * on the game id, so a game that arrives twice replaces itself instead of
+     * appearing twice, and the order works out the same either way.
+     */
+    const done = await run(jobs, DEPTH_PRESETS[settings.depth].depth, (game) => addGames([game]));
     setResults(done);
     // Nothing finished means it was stopped straight away; go back rather than
     // showing an empty results screen.
@@ -403,7 +418,7 @@ function StepRunning({ progress, onCancel }: {
 
       {progress.finished.length > 0 && (
         <div className="tiny" style={{ marginTop: 10, color: 'var(--good)' }}>
-          {progress.finished.length} done so far
+          {progress.finished.length} done and saved — stopping here keeps {progress.finished.length === 1 ? 'it' : 'them'}
         </div>
       )}
 

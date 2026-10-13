@@ -64,8 +64,22 @@ export function useBatchAnalysis() {
     engine.stop();
   }, [engine]);
 
+  /*
+   * `onGame` fires the moment a game is finished, before the next one starts.
+   *
+   * Analysis is the most expensive thing this app does — around fifteen
+   * seconds a game — and it used to hand everything back in one piece at the
+   * end. Twenty games is five minutes in which closing the tab, or the browser
+   * deciding a background tab has had enough, threw all of it away. Saving as
+   * they land also means navigating off the import page keeps what was already
+   * analysed, because the store does not care that the page has gone.
+   */
   const run = useCallback(
-    async (jobs: { parsed: ParsedGame; hero: Color }[], depth: number): Promise<AnalysedGame[]> => {
+    async (
+      jobs: { parsed: ParsedGame; hero: Color }[],
+      depth: number,
+      onGame?: (game: AnalysedGame) => void,
+    ): Promise<AnalysedGame[]> => {
       cancelRef.current = { cancelled: false };
       const cache = new Map<string, PositionAnalysis>();
       const totalPositions = jobs.reduce((n, j) => n + j.parsed.moves.length + 1, 0);
@@ -98,6 +112,7 @@ export function useBatchAnalysis() {
         try {
           const game = await analyseGame(engine, parsed, hero, options);
           finished.push(game);
+          onGame?.(game);
           setProgress((p) => ({ ...p, finished: [...finished] }));
         } catch (err) {
           if (err instanceof AnalysisCancelled) break;
