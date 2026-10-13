@@ -156,6 +156,16 @@ export interface GameMeta {
   black: string;
   result: string;
   date: string | null;
+  /**
+   * When the game was played, in epoch milliseconds, from the UTCDate and
+   * UTCTime headers. Optional because games stored before it existed do not
+   * have it; `whenPlayed` falls back to the date alone for those.
+   *
+   * This exists because the order games were analysed in is not the order they
+   * were played in. Lichess returns newest first, so a batch is analysed newest
+   * first, and anything that sorted by analysis time read time backwards.
+   */
+  playedAt?: number | null;
   event: string | null;
   whiteElo: number | null;
   blackElo: number | null;

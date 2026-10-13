@@ -4,6 +4,8 @@ import { Pill, navigate } from '../components/ui';
 import { useEngineStatus } from '../engine/useEngine';
 import { examplesFor, lessonFor } from '../coach/lessons';
 import { pickBand, scoreOpenings } from '../coach/report';
+import { progressFor } from '../coach/progress';
+import { TrainingProgressPanel } from '../components/TrainingProgress';
 import { ratingFromGames } from '../coach/recommend';
 import { BENCHMARK } from '../coach/benchmark';
 import { coachSpots, spotReason } from '../coach/fromGames';
@@ -41,6 +43,8 @@ export function CoachTrainPage({ tag }: { tag: MotifTag }) {
   const meta = MOTIF_META[tag];
   const lesson = lessonFor(tag);
   const spots = useMemo(() => examplesFor(games, tag, 6), [games, tag]);
+  const trainingRecord = useStore((s) => s.training[tag]);
+  const reading = useMemo(() => progressFor(games, tag, trainingRecord), [games, tag, trainingRecord]);
 
   const puzzleCount = useMemo(() => {
     const mine = puzzlesFromGames(games).filter((p) => p.tags.includes(tag)).length;
@@ -73,6 +77,9 @@ export function CoachTrainPage({ tag }: { tag: MotifTag }) {
         <h1>{meta.label}</h1>
         <p className="sub">{lesson?.oneLiner ?? meta.short}</p>
       </div>
+
+      {/* Whether working on this has changed anything, before the work itself. */}
+      {games.length > 0 && <TrainingProgressPanel reading={reading} />}
 
       {/* ---- Stage 1: your own positions ---- */}
       <section className="coach-block">
@@ -117,7 +124,7 @@ export function CoachTrainPage({ tag }: { tag: MotifTag }) {
                   </button>
                   <button
                     className="btn sm"
-                    onClick={() => { markDone(`${spot.gameId}:${spot.ply}`); setIndex((i) => Math.min(i + 1, spots.length - 1)); }}
+                    onClick={() => { markDone(`${spot.gameId}:${spot.ply}`, tag); setIndex((i) => Math.min(i + 1, spots.length - 1)); }}
                     disabled={index >= spots.length - 1 && Boolean(done[`${spot.gameId}:${spot.ply}`])}
                   >
                     Mark done

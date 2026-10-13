@@ -27,7 +27,7 @@ const state = () => ({
   progress: {}, solverRating: 1250,
   lessonStep: {}, lessonDone: { fork: true },
   openingStep: {}, openingQuizBest: {},
-  taught: {}, basicsDone: {}, coachSpotsDone: {},
+  taught: {}, basicsDone: {}, coachSpotsDone: {}, training: {},
   sessions: [], totals: { attempted: 3, solved: 2, bestStreak: 2 },
 });
 

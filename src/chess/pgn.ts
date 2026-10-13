@@ -132,6 +132,12 @@ export function parseGame(chunk: string): ParsedGame {
     black: headers.Black || 'Black',
     result: headers.Result || '*',
     date: headers.UTCDate || headers.Date || null,
+    // Only when the time is known. A date alone is still used for ordering, by
+    // `whenPlayed`, but marked imprecise so it is never placed either side of a
+    // moment on the same day.
+    playedAt: headers.UTCTime || headers.Time
+      ? playedAtFrom(headers.UTCDate || headers.Date || null, headers.UTCTime || headers.Time || null)
+      : null,
     event: headers.Event || null,
     whiteElo: toInt(headers.WhiteElo),
     blackElo: toInt(headers.BlackElo),
@@ -142,6 +148,25 @@ export function parseGame(chunk: string): ParsedGame {
 
   const id = hashId(`${meta.white}|${meta.black}|${meta.date}|${moves.map((m) => m.san).join(' ')}`);
   return { id, meta, startingFen, moves, timeControl: parseTimeControl(headers.TimeControl) };
+}
+
+/**
+ * Epoch milliseconds for a PGN date and time, read as UTC, or null.
+ *
+ * PGN dates are `YYYY.MM.DD` and may carry `??` for anything unknown, which is
+ * treated as no date at all rather than guessed at. A missing time falls back
+ * to midnight, so games from the same day still sort after the day before —
+ * they just cannot be ordered among themselves.
+ */
+export function playedAtFrom(date: string | null, time: string | null): number | null {
+  const d = date?.match(/^(\d{4})[.\-/](\d{2})[.\-/](\d{2})$/);
+  if (!d) return null;
+  const t = time?.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  const ms = Date.UTC(
+    Number(d[1]), Number(d[2]) - 1, Number(d[3]),
+    t ? Number(t[1]) : 0, t ? Number(t[2]) : 0, t && t[3] ? Number(t[3]) : 0,
+  );
+  return Number.isFinite(ms) ? ms : null;
 }
 
 export function parsePgn(text: string): ParseResult {

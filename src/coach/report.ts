@@ -1,5 +1,6 @@
 import { MOTIF_META, type AnalysedGame, type AnalysedMove, type Color, type MotifTag, type Phase } from '../types';
 import { winPctFor } from '../chess/evaluation';
+import { byPlayed } from './progress';
 
 /*
  * Scoring a game on a handful of axes, so it can be shown as a shape rather
@@ -522,10 +523,15 @@ export function lossBreakdown(games: AnalysedGame[], attributed: number): LossBr
   };
 }
 
-/** Per-game accuracy in the order they were played, for a trend. */
+/**
+ * Per-game accuracy in the order they were played, for a trend.
+ *
+ * The comment above always said "played"; the sort was by analysis time, and
+ * for a Lichess import those are opposite orders, so the chart drew time right
+ * to left and its "trending up" meant down.
+ */
 export function accuracyOverTime(games: AnalysedGame[]): { id: string; label: string; accuracy: number }[] {
-  return [...games]
-    .sort((a, b) => a.analysedAt - b.analysedAt)
+  return byPlayed(games)
     .map((g) => ({
       id: g.id,
       label: g.hero === 'w' ? g.meta.black : g.meta.white,

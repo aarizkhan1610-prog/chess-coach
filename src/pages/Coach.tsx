@@ -6,6 +6,7 @@ import { RecommendationCards } from '../components/Recommendations';
 import { buildProfile, coachSummary } from '../coach/weaknesses';
 import { recommend, ratingFromGames } from '../coach/recommend';
 import { coachSpots } from '../coach/fromGames';
+import { progressFor } from '../coach/progress';
 import { ALL_LESSONS } from '../coach/lessons';
 import { ALL_OPENINGS } from '../openings';
 import { useGames, useStore } from '../state/store';
@@ -32,9 +33,16 @@ export function CoachPage() {
   const known = useMemo(() => settings.rating ?? ratingFromGames(games), [settings.rating, games]);
   const asked = settings.ratingAsked || known !== null;
 
+  const training = useStore((s) => s.training);
   const profile = useMemo(() => buildProfile(games), [games]);
   const summary = useMemo(() => coachSummary(profile), [profile]);
-  const top = profile.weaknesses.slice(0, 3);
+  // Memoised so the memos below that depend on it are not rebuilt every render
+  // — the progress reading runs a permutation test.
+  const top = useMemo(() => profile.weaknesses.slice(0, 3), [profile]);
+  const progress = useMemo(
+    () => Object.fromEntries(top.map((w) => [w.tag, progressFor(games, w.tag, training[w.tag])])),
+    [games, top, training],
+  );
 
   /*
    * Ask for more than will be shown, because the first few are the same
@@ -88,6 +96,7 @@ export function CoachPage() {
                 key={weakness.tag}
                 weakness={weakness}
                 rank={i + 1}
+                progress={progress[weakness.tag]}
                 actions={
                   <button className="btn primary sm" onClick={() => navigate(`/coach/${weakness.tag}`)}>
                     Train this →

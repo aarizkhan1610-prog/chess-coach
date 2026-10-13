@@ -212,6 +212,7 @@ export function PuzzleSessionPage({ modeId }: { modeId: string }) {
   const progress = useStore((s) => s.progress);
   const solverRating = useStore((s) => s.solverRating);
   const recordPuzzle = useStore((s) => s.recordPuzzle);
+  const logTraining = useStore((s) => s.logTraining);
   const addSession = useStore((s) => s.addSession);
 
   const profile = useMemo(() => buildProfile(games), [games]);
@@ -286,6 +287,15 @@ export function PuzzleSessionPage({ modeId }: { modeId: string }) {
   const onResult = useCallback(
     (puzzle: Puzzle, outcome: PuzzleOutcome) => {
       recordPuzzle(puzzle, outcome);
+      /*
+       * A drill aimed at particular habits is training them; a daily set or a
+       * rush that happens to contain one is not. Only the habits this drill
+       * was aimed at are logged, and only those the puzzle actually carries.
+       */
+      if (mode?.tags) {
+        const aimed = puzzle.tags.filter((t) => mode.tags!.includes(t));
+        if (aimed.length) logTraining(aimed, 'puzzle');
+      }
       setAttempted((a) => a + 1);
       if (outcome === 'first-try') {
         setSolved((s) => s + 1);
@@ -296,7 +306,7 @@ export function PuzzleSessionPage({ modeId }: { modeId: string }) {
         if (mode?.lives) setLivesLeft((l) => Math.max(0, l - 1));
       }
     },
-    [recordPuzzle, mode],
+    [recordPuzzle, logTraining, mode],
   );
 
   const advance = useCallback(() => {

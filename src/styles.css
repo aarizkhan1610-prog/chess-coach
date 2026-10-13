@@ -1351,3 +1351,20 @@ tr.clickable:hover td { background: var(--surface-2); }
 .browse-link-label { font-weight: 600; color: var(--text); }
 .browse-link-head .tiny { margin-left: auto; }
 .browse-link-why { display: block; margin-top: 2px; }
+
+/* ---------------------------------------------------------------- *
+ * Training progress — before and after
+ * ---------------------------------------------------------------- */
+.progress-panel {
+  display: grid; gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg-elev);
+  margin-bottom: var(--space-5);
+}
+.progress-panel.improving { border-color: rgba(92, 184, 92, 0.45); }
+.progress-panel.worse { border-color: rgba(232, 106, 106, 0.5); }
+.progress-sides { display: flex; align-items: center; gap: var(--space-4); }
+.progress-side { display: grid; gap: 2px; }
+.progress-value { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
+.progress-arrow { color: var(--text-faint); font-size: 1.2rem; }

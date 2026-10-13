@@ -2,6 +2,7 @@ import type {
   AnalysedGame, AnalysedMove, MotifTag, MoveVerdict, Phase, Profile, WeaknessStat,
 } from '../types';
 import { MOTIF_META } from '../types';
+import { byPlayed } from './progress';
 import { gameAccuracy, winPctFor } from '../chess/evaluation';
 import { resultScore } from '../chess/pgn';
 
@@ -34,8 +35,16 @@ export function buildWeaknesses(games: AnalysedGame[]): WeaknessStat[] {
   }
   const acc = new Map<MotifTag, Acc>();
 
-  // "Recent" is the newest half of the games, by analysis time.
-  const ordered = [...games].sort((a, b) => a.analysedAt - b.analysedAt);
+  /*
+   * "Recent" is the newest half of the games by when they were played.
+   *
+   * It used to be by when they were analysed, which is not the same order and
+   * for the commonest import is the opposite one: Lichess returns a player's
+   * games newest first, a batch is analysed in the order it arrives, and so the
+   * newest game got the earliest analysis time. Every "improving" and "getting
+   * worse" on a Lichess import was reading time backwards.
+   */
+  const ordered = byPlayed(games);
   const splitAt = Math.floor(ordered.length / 2);
   const recentIds = new Set(ordered.slice(splitAt).map((g) => g.id));
   const recentCount = ordered.length - splitAt;
@@ -108,8 +117,9 @@ export function buildProfile(games: AnalysedGame[]): Profile {
     }
   }
 
-  // Momentum: the last five games against the five before them.
-  const byDate = [...games].sort((a, b) => a.analysedAt - b.analysedAt);
+  // Momentum: the last five games played against the five before them — by
+  // when they were played, for the reason given in buildWeaknesses.
+  const byDate = byPlayed(games);
   const perGameAccuracy = byDate.map((g) => g.accuracy[g.hero]);
   let momentum: number | null = null;
   if (perGameAccuracy.length >= 4) {

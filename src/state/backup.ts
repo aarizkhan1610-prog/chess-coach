@@ -20,7 +20,7 @@
 export const DATA_KEYS = [
   'settings', 'games', 'gameOrder', 'progress', 'solverRating',
   'lessonStep', 'lessonDone', 'openingStep', 'openingQuizBest',
-  'taught', 'basicsDone', 'coachSpotsDone', 'sessions', 'totals',
+  'taught', 'basicsDone', 'coachSpotsDone', 'training', 'sessions', 'totals',
 ] as const;
 
 export type DataKey = (typeof DATA_KEYS)[number];

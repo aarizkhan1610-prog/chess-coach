@@ -4,6 +4,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import type { AnalysedGame, AnalysisDepthPreset, MotifTag, Puzzle, PuzzleProgress } from '../types';
 import { getStorageFault, idbStorage, subscribeStorageFault, type StorageFault } from './idb';
 import { newProgress, review, updateSolverRating } from '../coach/srs';
+import { logged, type TrainingKind, type TrainingRecord } from '../coach/progress';
 
 export type PuzzleOutcome = 'first-try' | 'hinted' | 'failed';
 
@@ -65,6 +66,15 @@ interface AppState {
   basicsDone: Record<string, boolean>;
   /** Coach positions worked through, keyed `${gameId}:${ply}`. */
   coachSpotsDone: Record<string, boolean>;
+  /**
+   * When each habit was deliberately trained, by motif tag.
+   *
+   * Only deliberate training: the coach's positions for a habit, its lesson,
+   * and puzzles in a drill aimed at it. A daily puzzle that happens to be
+   * tagged with a motif does not start the clock on it, because what this
+   * measures is the games played since somebody set out to fix something.
+   */
+  training: Record<string, TrainingRecord>;
   sessions: SessionRecord[];
   totals: { attempted: number; solved: number; bestStreak: number };
 
@@ -80,7 +90,8 @@ interface AppState {
   setOpeningQuizBest: (id: string, score: number) => void;
   markTaught: (code: string) => void;
   markBasicDone: (id: string) => void;
-  markSpotDone: (key: string) => void;
+  markSpotDone: (key: string, tag?: MotifTag) => void;
+  logTraining: (tags: MotifTag[], kind: TrainingKind) => void;
   addSession: (s: SessionRecord) => void;
 }
 
@@ -110,6 +121,7 @@ export const useStore = create<AppState>()(
       taught: {},
       basicsDone: {},
       coachSpotsDone: {},
+      training: {},
       sessions: [],
       totals: { attempted: 0, solved: 0, bestStreak: 0 },
 
@@ -157,7 +169,11 @@ export const useStore = create<AppState>()(
       setLessonStep: (tag, step) =>
         set((s) => ({ lessonStep: { ...s.lessonStep, [tag]: Math.max(step, s.lessonStep[tag] ?? 0) } })),
 
-      markLessonDone: (tag, done) => set((s) => ({ lessonDone: { ...s.lessonDone, [tag]: done } })),
+      markLessonDone: (tag, done) =>
+        set((s) => ({
+          lessonDone: { ...s.lessonDone, [tag]: done },
+          training: done ? { ...s.training, [tag]: logged(s.training[tag], 'lesson', Date.now()) } : s.training,
+        })),
 
       setOpeningStep: (id, step) =>
         set((s) => ({ openingStep: { ...s.openingStep, [id]: Math.max(step, s.openingStep[id] ?? 0) } })),
@@ -165,8 +181,19 @@ export const useStore = create<AppState>()(
       setOpeningQuizBest: (id, score) =>
         set((s) => ({ openingQuizBest: { ...s.openingQuizBest, [id]: Math.max(score, s.openingQuizBest[id] ?? 0) } })),
 
-      markSpotDone: (key) =>
-        set((s) => (s.coachSpotsDone[key] ? {} : { coachSpotsDone: { ...s.coachSpotsDone, [key]: true } })),
+      markSpotDone: (key, tag) =>
+        set((s) => (s.coachSpotsDone[key] ? {} : {
+          coachSpotsDone: { ...s.coachSpotsDone, [key]: true },
+          training: tag ? { ...s.training, [tag]: logged(s.training[tag], 'position', Date.now()) } : s.training,
+        })),
+
+      logTraining: (tags, kind) =>
+        set((s) => {
+          const now = Date.now();
+          const training = { ...s.training };
+          for (const tag of tags) training[tag] = logged(training[tag], kind, now);
+          return { training };
+        }),
 
       markBasicDone: (id) =>
         set((s) => (s.basicsDone[id] ? {} : { basicsDone: { ...s.basicsDone, [id]: true } })),
