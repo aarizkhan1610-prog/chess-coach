@@ -241,6 +241,55 @@ export function MoveList({ moves, current, onSelect, heroColor }: {
 /* ------------------------------------------------------------------ *
  * Small helpers
  * ------------------------------------------------------------------ */
+/**
+ * A section you only see if you ask for it.
+ *
+ * Built on `<details>` rather than state and a chevron, because the native
+ * element is already keyboard-operable, already announces whether it is open,
+ * and already works before the JavaScript has decided anything.
+ *
+ * The point of it is that the coach should offer one thing to do, not nine.
+ * Everything that is not the recommendation goes behind this, which is also
+ * the only way to reach the lesson, puzzle and opening libraries — they had no
+ * entry in the navigation at all, so somebody who did not want to import games
+ * had nowhere to go.
+ */
+export function Disclosure({ summary, hint, children, defaultOpen = false }: {
+  summary: string;
+  hint?: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+}) {
+  return (
+    <details className="disclosure" open={defaultOpen}>
+      <summary className="disclosure-summary">
+        <span className="disclosure-chevron" aria-hidden>▸</span>
+        <span className="disclosure-label">{summary}</span>
+        {hint && <span className="disclosure-hint tiny faint">{hint}</span>}
+      </summary>
+      <div className="disclosure-body">{children}</div>
+    </details>
+  );
+}
+
+/** One destination inside a Disclosure. */
+export function BrowseLink({ label, children, onClick, meta }: {
+  label: string;
+  children: ReactNode;
+  onClick: () => void;
+  meta?: string;
+}) {
+  return (
+    <button className="browse-link" onClick={onClick}>
+      <span className="browse-link-head">
+        <span className="browse-link-label">{label}</span>
+        {meta && <span className="tiny faint">{meta}</span>}
+      </span>
+      <span className="browse-link-why small dim">{children}</span>
+    </button>
+  );
+}
+
 export function Spinner() {
   return <span className="spin" aria-label="working" />;
 }

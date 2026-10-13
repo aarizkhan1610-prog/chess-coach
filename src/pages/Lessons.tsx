@@ -135,7 +135,7 @@ export function LessonPage({ tag }: { tag: MotifTag }) {
   return (
     <div>
       <div className="page-head">
-        <button className="btn sm ghost" style={{ marginBottom: 8 }} onClick={() => navigate('/lessons')}>← Lessons</button>
+        <button className="btn sm link" style={{ marginBottom: 8 }} onClick={() => navigate('/lessons')}>← Lessons</button>
         <div className="row wrap">
           <div>
             <h1>{lesson.title}</h1>

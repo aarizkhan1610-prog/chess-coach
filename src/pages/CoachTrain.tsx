@@ -69,7 +69,7 @@ export function CoachTrainPage({ tag }: { tag: MotifTag }) {
   return (
     <div>
       <div className="page-head">
-        <button className="btn sm ghost" onClick={() => navigate('/coach')}>{'← Back to the coach'}</button>
+        <button className="btn sm link" onClick={() => navigate('/coach')}>{'← Back to the coach'}</button>
         <h1>{meta.label}</h1>
         <p className="sub">{lesson?.oneLiner ?? meta.short}</p>
       </div>
@@ -208,7 +208,7 @@ export function CoachMixedPage() {
     return (
       <div>
         <div className="page-head">
-          <button className="btn sm ghost" onClick={() => navigate('/coach')}>{'← Back to the coach'}</button>
+          <button className="btn sm link" onClick={() => navigate('/coach')}>{'← Back to the coach'}</button>
           <h1>All your mistakes</h1>
         </div>
         <div className="card">
@@ -228,7 +228,7 @@ export function CoachMixedPage() {
   return (
     <div>
       <div className="page-head">
-        <button className="btn sm ghost" onClick={() => navigate('/coach')}>{'← Back to the coach'}</button>
+        <button className="btn sm link" onClick={() => navigate('/coach')}>{'← Back to the coach'}</button>
         <h1>All your mistakes</h1>
         <p className="sub">Worst first, whatever the cause. Play anything — you will be told what it does.</p>
       </div>

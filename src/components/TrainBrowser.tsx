@@ -148,7 +148,7 @@ export function TrainBrowser({
         </nav>
 
         {trail.length > 0 && (
-          <button className="btn sm ghost train-back" onClick={back}>
+          <button className="btn sm link train-back" onClick={back}>
             ← Back to {trail.length > 1 ? trail[trail.length - 2].label : rootLabel}
           </button>
         )}

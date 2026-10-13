@@ -2,23 +2,44 @@
  * Chess Coach — design tokens
  * ---------------------------------------------------------------- */
 :root {
-  --bg: #12141a;
-  --bg-elev: #191d25;
-  --surface: #1e232c;
-  --surface-2: #252b36;
-  --border: #2e3644;
-  --border-strong: #3d4757;
+  /*
+   * Surfaces, spaced by perceptual lightness rather than by eye.
+   *
+   * The old steps were 4.3, 7.2, 3.8 and 8.8 in L*, which is why the interface
+   * read as flat: a card sat 3.8 points of lightness away from the thing
+   * beside it, and a border 8.8 from the card it was supposed to outline. At
+   * that distance a surface is not a plane, it is a rumour. The WCAG contrast
+   * ratio says almost nothing here — at these luminances its +0.05 offset
+   * swamps the comparison and every pair comes back near 1.1 — so these are
+   * spaced in CIELAB L*, where a step of 5 is the point a large area starts
+   * reading as a different plane.
+   *
+   *   bg → bg-elev           5.5
+   *   bg → surface          11.3
+   *   surface → surface-2    6.5
+   *   surface → border      14.7
+   *   surface → border-strong 34.2, and 3.3:1 — the WCAG bar for the boundary
+   *                           of a control, which is what it mostly draws
+   */
+  --bg: #0d0f15;
+  --bg-elev: #171b26;
+  --surface: #212734;
+  --surface-2: #2d3545;
+  --border: #3e4859;
+  --border-strong: #697792;
 
+  /* Every pair below is AA against bg, surface and surface-2, except
+   * --text-faint, which is for metadata and clears the 3:1 large-text bar. */
   --text: #e8ebf2;
-  --text-dim: #a3adbe;
-  --text-faint: #6f7a8c;
+  --text-dim: #a7b1c2;
+  --text-faint: #7a8597;
 
   --accent: #d9a441;
   --accent-dim: #8a6a2b;
   --accent-text: #1a1206;
 
   --good: #5cb85c;
-  --bad: #e05c5c;
+  --bad: #e86a6a;
   --info: #5b9bd5;
 
   /* Move verdicts */
@@ -29,7 +50,7 @@
   --v-book: #9c8b7a;
   --v-inaccuracy: #e8c34a;
   --v-mistake: #e89440;
-  --v-blunder: #e05c5c;
+  --v-blunder: #e86a6a;
 
   /* Board */
   --sq-light: #ecd9b9;
@@ -302,11 +323,32 @@ li { margin-bottom: 0.3em; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
 .btn.primary:hover:not(:disabled) { filter: brightness(1.08); }
-.btn.ghost { background: none; border-color: transparent; color: var(--text-dim); }
-.btn.ghost:hover:not(:disabled) { background: var(--surface-2); color: var(--text); }
+/*
+ * The quiet tier, which still has to look like a control.
+ *
+ * This was `background: none; border-color: transparent; color: var(--text-dim)`
+ * — which is the exact description of dim body text. "Hint" and "Skip" beside
+ * a puzzle were indistinguishable from the sentence above them, and the only
+ * affordance left was a hover state, which says nothing to somebody deciding
+ * whether there is anything there to press.
+ *
+ * Three tiers now, and they differ by fill rather than by existence: accent
+ * fill for the one action, surface fill for an alternative, outline for the
+ * rest. All three carry a border.
+ */
+.btn.ghost { background: none; border-color: var(--border-strong); color: var(--text); }
+.btn.ghost:hover:not(:disabled) { background: var(--surface-2); border-color: var(--accent-dim); }
+
+/* For the handful of places that genuinely are navigation rather than an
+ * action — a back link above a title — where a box would be noise. */
+.btn.link {
+  background: none; border-color: transparent; color: var(--text-dim);
+  padding-left: var(--space-1); padding-right: var(--space-1);
+}
+.btn.link:hover:not(:disabled) { background: none; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
 .btn.sm { padding: 5px 10px; font-size: 0.86rem; }
 .btn.danger { border-color: var(--bad); color: var(--bad); background: none; }
-.btn.danger:hover:not(:disabled) { background: rgba(224, 92, 92, 0.12); }
+.btn.danger:hover:not(:disabled) { background: rgba(232, 106, 106, 0.14); }
 
 .pill {
   display: inline-flex; align-items: center; gap: var(--space-1);
@@ -324,7 +366,20 @@ textarea, input[type='text'], input[type='number'], select {
   font: inherit;
 }
 textarea { font-family: var(--mono); font-size: 0.85rem; line-height: 1.5; resize: vertical; min-height: 150px; }
-input:focus, textarea:focus, select:focus { outline: 2px solid var(--accent-dim); outline-offset: -1px; }
+input:focus, textarea:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+/*
+ * One focus ring for everything that can be focused.
+ *
+ * There was one on form fields and nowhere else, so a keyboard user moving
+ * through the app had no idea where they were. `:focus-visible` rather than
+ * `:focus` keeps it off mouse clicks.
+ */
+:where(button, a, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
 label.field { display: block; margin-bottom: var(--space-3); }
 label.field > span { display: block; font-size: 0.83rem; color: var(--text-dim); margin-bottom: var(--space-1); font-weight: 600; }
 
@@ -361,7 +416,7 @@ label.field > span { display: block; font-size: 0.83rem; color: var(--text-dim);
   font-size: 0.89rem;
 }
 .banner.warn { border-color: var(--v-inaccuracy); background: rgba(232, 195, 74, 0.09); }
-.banner.error { border-color: var(--bad); background: rgba(224, 92, 92, 0.09); }
+.banner.error { border-color: var(--bad); background: rgba(232, 106, 106, 0.11); }
 .banner.ok { border-color: var(--good); background: rgba(92, 184, 92, 0.09); }
 
 table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
@@ -1259,3 +1314,40 @@ tr.clickable:hover td { background: var(--surface-2); }
   max-height: 9rem;
   overflow: auto;
 }
+
+/* ---------------------------------------------------------------- *
+ * Disclosure — everything that is not the recommendation
+ * ---------------------------------------------------------------- */
+.disclosure {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+}
+.disclosure-summary {
+  display: flex; align-items: baseline; gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer; list-style: none; user-select: none;
+  border-radius: var(--radius);
+  color: var(--text-dim); font-weight: 600;
+  transition: color 0.12s, background 0.12s;
+}
+.disclosure-summary::-webkit-details-marker { display: none; }
+.disclosure-summary:hover { color: var(--text); background: var(--surface); }
+.disclosure[open] .disclosure-summary { color: var(--text); border-bottom: 1px solid var(--border); border-radius: var(--radius) var(--radius) 0 0; }
+.disclosure-chevron { display: inline-block; transition: transform 0.15s; color: var(--text-faint); }
+.disclosure[open] .disclosure-chevron { transform: rotate(90deg); }
+.disclosure-hint { margin-left: auto; }
+.disclosure-body { padding: var(--space-4); display: grid; gap: var(--space-2); }
+
+.browse-link {
+  display: block; width: 100%; text-align: left;
+  padding: var(--space-3); border-radius: var(--radius-sm);
+  background: none; border: 1px solid transparent; color: inherit;
+  font: inherit; cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.browse-link:hover { background: var(--surface); border-color: var(--border); }
+.browse-link-head { display: flex; align-items: baseline; gap: var(--space-2); }
+.browse-link-label { font-weight: 600; color: var(--text); }
+.browse-link-head .tiny { margin-left: auto; }
+.browse-link-why { display: block; margin-top: 2px; }

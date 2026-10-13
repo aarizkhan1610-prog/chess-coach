@@ -362,7 +362,7 @@ export function PuzzleSessionPage({ modeId }: { modeId: string }) {
       <div className="page-head">
         <div className="row wrap">
           <div>
-            <button className="btn sm ghost" style={{ marginBottom: 6 }} onClick={() => navigate('/puzzles')}>← Puzzles</button>
+            <button className="btn sm link" style={{ marginBottom: 6 }} onClick={() => navigate('/puzzles')}>← Puzzles</button>
             <h1>{mode.name}</h1>
           </div>
           <div className="spacer" />

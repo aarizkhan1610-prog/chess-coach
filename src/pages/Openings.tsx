@@ -174,7 +174,7 @@ export function OpeningPage({ id }: { id: string }) {
   return (
     <div>
       <div className="page-head">
-        <button className="btn sm ghost" style={{ marginBottom: 6 }} onClick={() => navigate('/openings')}>← Openings</button>
+        <button className="btn sm link" style={{ marginBottom: 6 }} onClick={() => navigate('/openings')}>← Openings</button>
         <div className="row wrap">
           <div>
             <h1>{opening.name}</h1>

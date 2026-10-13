@@ -111,7 +111,7 @@ export function BasicsGamePage() {
   return (
     <div>
       <div className="page-head">
-        <button className="btn sm ghost" onClick={() => navigate('/basics')}>{'← Back to the basics'}</button>
+        <button className="btn sm link" onClick={() => navigate('/basics')}>{'← Back to the basics'}</button>
         <h1>{OPERA.title}</h1>
         <p className="sub">{OPERA.subtitle}</p>
         <div className="guided-blurb">
@@ -131,7 +131,7 @@ export function BasicsPlayPage() {
   return (
     <div>
       <div className="page-head">
-        <button className="btn sm ghost" onClick={() => navigate('/basics')}>{'← Back to the basics'}</button>
+        <button className="btn sm link" onClick={() => navigate('/basics')}>{'← Back to the basics'}</button>
         <h1>Play with a coach</h1>
         <p className="sub">
           Try things. Every move gets explained, nothing is locked, and you can take any move back.
@@ -183,7 +183,7 @@ export function BasicsSectionPage({ id }: { id: string }) {
   return (
     <div>
       <div className="page-head">
-        <button className="btn sm ghost" onClick={() => navigate('/basics')}>{'← Back to the basics'}</button>
+        <button className="btn sm link" onClick={() => navigate('/basics')}>{'← Back to the basics'}</button>
         <h1>{tour.title}</h1>
         <p className="sub">{tour.lede}</p>
       </div>
@@ -213,7 +213,7 @@ export function BasicsSectionPage({ id }: { id: string }) {
           <DrillBoard key={drill.id} drill={drill} onSolved={() => markDone(drill.id)} />
           <div className="row wrap drill-actions">
             {index > 0 && (
-              <button className="btn sm ghost" onClick={() => setIndex((i) => i - 1)}>{'← Previous'}</button>
+              <button className="btn sm link" onClick={() => setIndex((i) => i - 1)}>{'← Previous'}</button>
             )}
             {index < all - 1 && (
               <button className="btn primary sm" onClick={() => setIndex((i) => i + 1)}>Next task →</button>

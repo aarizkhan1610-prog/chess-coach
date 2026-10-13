@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
-import { Pill, navigate } from '../components/ui';
+import { BrowseLink, Disclosure, Pill, navigate } from '../components/ui';
 import { RatingPrompt } from '../components/RatingPrompt';
 import { WeaknessRow } from '../components/WeaknessRow';
 import { RecommendationCards } from '../components/Recommendations';
 import { buildProfile, coachSummary } from '../coach/weaknesses';
 import { recommend, ratingFromGames } from '../coach/recommend';
 import { coachSpots } from '../coach/fromGames';
+import { ALL_LESSONS } from '../coach/lessons';
+import { ALL_OPENINGS } from '../openings';
 import { useGames, useStore } from '../state/store';
 
 /*
@@ -149,6 +151,36 @@ export function CoachPage() {
           </button> in order of what they cost, rather than by habit.
         </p>
       )}
+
+      {/*
+        * Everything the coach is not currently recommending.
+        *
+        * The libraries had no entry in the navigation at all — they were
+        * reachable only if a recommendation happened to point at one — so
+        * anybody who did not want to do the thing on offer had nowhere to go.
+        * Putting them back in the sidebar would undo the work that made this
+        * two features rather than nine, so they live behind one line that
+        * answers "what else is there" and says nothing until it is asked.
+        */}
+      <section className="coach-block">
+        <Disclosure
+          summary={games.length ? 'Browse everything else' : 'Or browse on your own'}
+          hint="lessons · puzzles · openings"
+        >
+          <BrowseLink label="Lessons" meta={`${ALL_LESSONS.length} of them`} onClick={() => navigate('/lessons')}>
+            One per habit the analysis can spot, with a core track if you would rather be told the order.
+          </BrowseLink>
+          <BrowseLink label="Puzzles" meta="7 modes" onClick={() => navigate('/puzzles')}>
+            Built from your own blunders once you have imported games, and from a starter set before that.
+          </BrowseLink>
+          <BrowseLink label="Openings" meta={`${ALL_OPENINGS.length} courses`} onClick={() => navigate('/openings')}>
+            Full repertoires for both colours — the ideas and the plans, not just the moves.
+          </BrowseLink>
+          <BrowseLink label="Learn to play" meta="new to chess" onClick={() => navigate('/basics')}>
+            How the pieces move, the rules people get wrong, and a game played with a coach beside you.
+          </BrowseLink>
+        </Disclosure>
+      </section>
     </div>
   );
 }
