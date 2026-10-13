@@ -2,6 +2,8 @@ import { MOTIF_META, type AnalysedGame, type MotifTag } from '../types';
 import { AXES, bandFor, pickBand, scoreOpenings, type AxisId } from './report';
 import { BENCHMARK } from './benchmark';
 import { buildProfile } from './weaknesses';
+import { rankHabits } from './ranking';
+import type { TrainingRecord } from './progress';
 import { lessonFor } from './lessons';
 import { ALL_OPENINGS, openingById } from '../openings';
 
@@ -68,13 +70,20 @@ function weakestAt(rating: number): { axis: (typeof AXES)[number]; median: numbe
   return scored[0] ?? null;
 }
 
-export function recommend(games: AnalysedGame[], rating: number | null, limit = 3): Recommendation[] {
+export function recommend(
+  games: AnalysedGame[],
+  rating: number | null,
+  limit = 3,
+  training: Record<string, TrainingRecord> = {},
+): Recommendation[] {
   const out: Recommendation[] = [];
 
   /* ---- what this player keeps doing ---- */
   if (games.length) {
     const profile = buildProfile(games);
-    for (const weakness of profile.weaknesses.slice(0, limit)) {
+    /* In the coach's order, so the rail and the cards above it agree. */
+    const ranked = rankHabits(games, profile.weaknesses, training).map((h) => h.weakness);
+    for (const weakness of ranked.slice(0, limit)) {
       const link = weaknessLink(weakness.tag);
       out.push({
         id: `weakness:${weakness.tag}`,

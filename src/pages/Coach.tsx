@@ -6,7 +6,8 @@ import { RecommendationCards } from '../components/Recommendations';
 import { buildProfile, coachSummary } from '../coach/weaknesses';
 import { recommend, ratingFromGames } from '../coach/recommend';
 import { coachSpots } from '../coach/fromGames';
-import { progressFor } from '../coach/progress';
+import { rankHabits, rankReason } from '../coach/ranking';
+import { MOTIF_META } from '../types';
 import { ALL_LESSONS } from '../coach/lessons';
 import { ALL_OPENINGS } from '../openings';
 import { useGames, useStore } from '../state/store';
@@ -36,12 +37,23 @@ export function CoachPage() {
   const training = useStore((s) => s.training);
   const profile = useMemo(() => buildProfile(games), [games]);
   const summary = useMemo(() => coachSummary(profile), [profile]);
-  // Memoised so the memos below that depend on it are not rebuilt every render
-  // — the progress reading runs a permutation test.
-  const top = useMemo(() => profile.weaknesses.slice(0, 3), [profile]);
-  const progress = useMemo(
-    () => Object.fromEntries(top.map((w) => [w.tag, progressFor(games, w.tag, training[w.tag])])),
-    [games, top, training],
+  /*
+   * The coach's order, not the profile's: what each habit costs now, and what
+   * training has already shown about it. For somebody who has trained nothing
+   * the two are identical.
+   */
+  const ranked = useMemo(() => rankHabits(games, profile.weaknesses, training), [games, profile, training]);
+  const top = useMemo(() => ranked.slice(0, 3), [ranked]);
+  /* Wins, wherever they now rank — a habit that came down drops out of the top
+   * three, which is exactly when it would otherwise stop being mentioned. */
+  const working = useMemo(() => ranked.filter((h) => h.state === 'improving'), [ranked]);
+  /*
+   * Habits set aside for now. Only something you have trained can stall, so you
+   * would notice it vanishing from the list — it should not vanish without a word.
+   */
+  const setAside = useMemo(
+    () => ranked.filter((h) => h.state === 'stalled' && !top.includes(h)),
+    [ranked, top],
   );
 
   /*
@@ -50,11 +62,32 @@ export function CoachPage() {
    * three leaves nothing at all.
    */
   const rest = useMemo(
-    () => recommend(games, known, 6)
-      .filter((r) => !top.some((w) => r.id === `weakness:${w.tag}`))
+    () => recommend(games, known, 6, training)
+      .filter((r) => !top.some((h) => r.id === `weakness:${h.weakness.tag}`))
       .slice(0, 3),
-    [games, known, top],
+    [games, known, top, training],
   );
+
+  /*
+   * When the coach's first habit is not the costliest one, the opening line has
+   * to say why — otherwise it names one habit and the first card shows another.
+   */
+  const costliest = profile.weaknesses[0];
+  const leadsWith = top[0];
+  const lead = !leadsWith
+    ? null
+    : costliest && leadsWith.weakness.tag !== costliest.tag
+      ? (() => {
+        const displaced = ranked.find((h) => h.weakness.tag === costliest.tag);
+        const why = displaced?.state === 'improving'
+          ? `has come down since you trained it (${displaced.reading.before.perGame} → ${displaced.reading.after.perGame} a game)`
+          : displaced?.state === 'stalled'
+            ? `has shown no sign of coming down after ${displaced.sessions} sessions, so it can wait`
+            : 'is lower down for now';
+        return `Start with ${MOTIF_META[leadsWith.weakness.tag].label.toLowerCase()}. `
+          + `${MOTIF_META[costliest.tag].label} costs more across all your games, but it ${why}.`;
+      })()
+      : summary[0] ?? 'Here is what your games say to work on.';
 
   const mixed = useMemo(() => coachSpots(games, 24), [games]);
 
@@ -80,7 +113,7 @@ export function CoachPage() {
         </div>
         <p className="sub">
           {top.length
-            ? summary[0] ?? 'Here is what your games say to work on.'
+            ? lead
             : known !== null
               ? `At ${known} I can tell you what players like you are weakest at. I cannot tell you about you until I have seen your games.`
               : 'Nothing to go on yet, so start at the beginning.'}
@@ -91,18 +124,60 @@ export function CoachPage() {
         <section className="coach-block">
           <h2>What to work on</h2>
           <div className="coach-weaknesses">
-            {top.map((weakness, i) => (
+            {top.map((habit, i) => (
               <WeaknessRow
-                key={weakness.tag}
-                weakness={weakness}
+                key={habit.weakness.tag}
+                weakness={habit.weakness}
                 rank={i + 1}
-                progress={progress[weakness.tag]}
+                progress={habit.reading}
+                note={rankReason(habit) ?? undefined}
                 actions={
-                  <button className="btn primary sm" onClick={() => navigate(`/coach/${weakness.tag}`)}>
+                  <button className="btn primary sm" onClick={() => navigate(`/coach/${habit.weakness.tag}`)}>
                     Train this →
                   </button>
                 }
               />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {setAside.length > 0 && (
+        <p className="small dim coach-set-aside">
+          Set aside for now:{' '}
+          {setAside.map((h, i) => (
+            <span key={h.weakness.tag}>
+              {i > 0 && ', '}
+              <button className="linklike" onClick={() => navigate(`/coach/${h.weakness.tag}`)}>
+                {MOTIF_META[h.weakness.tag].label.toLowerCase()}
+              </button>
+            </span>
+          ))}
+          {' '}— {setAside.length === 1 ? 'it has' : 'they have'} shown no sign of coming down after real training, so
+          something else comes first. {setAside.length === 1 ? 'It is' : 'They are'} still in your report, and worth
+          coming back to with fresh eyes.
+        </p>
+      )}
+
+      {working.length > 0 && (
+        <section className="coach-block">
+          <h2>What is working</h2>
+          <div className="coach-working">
+            {working.map((habit) => (
+              <button
+                key={habit.weakness.tag}
+                className="working-row"
+                onClick={() => navigate(`/coach/${habit.weakness.tag}`)}
+              >
+                <span className="bold">{MOTIF_META[habit.weakness.tag].label}</span>
+                <span className="mono working-change">
+                  {habit.reading.before.perGame} → {habit.reading.after.perGame}
+                </span>
+                <span className="tiny faint">
+                  win% a game, before you started training it and since — across {habit.reading.before.games} and{' '}
+                  {habit.reading.after.games} games
+                </span>
+              </button>
             ))}
           </div>
         </section>

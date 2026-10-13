@@ -16,6 +16,7 @@ export function WeaknessRow({
   rank,
   actions,
   progress,
+  note,
 }: {
   weakness: WeaknessStat;
   rank: number;
@@ -23,6 +24,8 @@ export function WeaknessRow({
   actions?: ReactNode;
   /** Before and after training, when this habit has been trained. */
   progress?: ProgressReading;
+  /** Why it sits where it does, when its cost alone would put it elsewhere. */
+  note?: string;
 }) {
   const meta = MOTIF_META[weakness.tag];
   const trained = progress && progress.verdict !== 'not-trained';
@@ -50,6 +53,7 @@ export function WeaknessRow({
           {' '}{weakness.perGame} win% per game · {weakness.share}% of all your losses
         </div>
         {summary && <div className="tiny" style={{ marginTop: 3, color: 'var(--text-dim)' }}>{summary}</div>}
+        {note && <div className="tiny weakness-note">{note}</div>}
         <div style={{ marginTop: 5 }}><Meter value={weakness.severity} /></div>
       </div>
       {actions}

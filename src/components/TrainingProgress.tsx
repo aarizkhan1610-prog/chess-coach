@@ -1,5 +1,6 @@
 import { Pill } from './ui';
 import { MIN_SIDE, type ProgressReading } from '../coach/progress';
+import { isRising } from '../coach/ranking';
 
 /*
  * What happened to a habit after you started training it.
@@ -18,7 +19,10 @@ export function ProgressPill({ reading }: { reading: ProgressReading }) {
   switch (reading.verdict) {
     case 'improving': return <Pill color="var(--good)">down since training</Pill>;
     case 'worse': return <Pill color="var(--bad)">up since training</Pill>;
-    case 'no-clear-change': return <Pill>no clear change yet</Pill>;
+    case 'no-clear-change':
+      return isRising(reading)
+        ? <Pill color="var(--v-inaccuracy)">up, not yet clear</Pill>
+        : <Pill>no clear change yet</Pill>;
     case 'too-early': return <Pill>measuring</Pill>;
     default: return null;
   }

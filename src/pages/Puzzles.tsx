@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Chess } from 'chess.js';
 import { useGames, useStore, type PuzzleOutcome } from '../state/store';
 import { buildProfile } from '../coach/weaknesses';
+import { rankHabits } from '../coach/ranking';
 import { puzzlesFromGames, isCorrectFirstMove, ratingBand } from '../coach/puzzles';
 import { STARTER_PUZZLES } from '../coach/starterPuzzles';
 import { selectPuzzles } from '../coach/srs';
@@ -216,7 +217,12 @@ export function PuzzleSessionPage({ modeId }: { modeId: string }) {
   const addSession = useStore((s) => s.addSession);
 
   const profile = useMemo(() => buildProfile(games), [games]);
-  const topTags = useMemo(() => profile.weaknesses.slice(0, 3).map((w) => w.tag), [profile]);
+  const training = useStore((s) => s.training);
+  /* The habits the coach is recommending, so "drill my weaknesses" drills those. */
+  const topTags = useMemo(
+    () => rankHabits(games, profile.weaknesses, training).slice(0, 3).map((h) => h.weakness.tag),
+    [games, profile, training],
+  );
   const mode = useMemo(() => modeFor(modeId, topTags), [modeId, topTags]);
 
   const pool = useMemo(() => {

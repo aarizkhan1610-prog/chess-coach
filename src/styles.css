@@ -1368,3 +1368,27 @@ tr.clickable:hover td { background: var(--surface-2); }
 .progress-side { display: grid; gap: 2px; }
 .progress-value { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
 .progress-arrow { color: var(--text-faint); font-size: 1.2rem; }
+
+/* Why a habit sits where it does, when its cost alone would put it elsewhere. */
+.weakness-note {
+  margin-top: var(--space-1);
+  padding-left: var(--space-2);
+  border-left: 2px solid var(--accent-dim);
+  color: var(--text-dim);
+}
+
+/* Habits that came down since training — said out loud, because they drop
+   out of the top three at exactly the moment they would stop being mentioned. */
+.coach-working { display: grid; gap: var(--space-2); }
+.working-row {
+  display: grid; grid-template-columns: 1fr auto; gap: 2px var(--space-3); align-items: baseline;
+  width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: 1px solid rgba(92, 184, 92, 0.4); border-radius: var(--radius);
+  transition: background 0.12s, border-color 0.12s;
+}
+.working-row:hover { background: var(--surface-2); border-color: var(--good); }
+.working-change { color: var(--good); font-weight: 700; }
+.working-row .tiny { grid-column: 1 / -1; }
+.coach-set-aside { margin-top: calc(-1 * var(--space-2)); margin-bottom: var(--space-5); max-width: var(--measure); }
