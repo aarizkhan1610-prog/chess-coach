@@ -1,5 +1,7 @@
 # Chess Coach
 
+**[Open it →](https://aarizkhan1610-prog.github.io/chess-coach/)**
+
 A browser app that analyses your games, works out what you actually keep getting
 wrong, and then trains exactly that. Everything runs locally — Stockfish 19 is
 compiled to WebAssembly and executes in a worker in your own tab. No game ever
@@ -10,42 +12,38 @@ npm install
 npm run dev
 ```
 
-## Where you start
+## Two features
 
-The app opens on four pathways rather than a dashboard, because a dashboard
-with no games in it tells you nothing. They are phrased as intentions, not
-features:
+The app is a coach and a report, and the navigation has two entries because
+there are two things here. An earlier version had a home page, four "pathway"
+cards, and recommendations emitted from twelve different surfaces — at which
+point what the app was actually for had stopped being obvious.
 
-- **Show me my mistakes** — import a game and find out what it cost you
-- **Teach me the fundamentals** — the habits that decide games below master level
-- **Grow my opening repertoire** — proper courses for both colours
-- **Sharpen my tactics** — puzzles, and seven ways to drill them
+**The report** (`/report`) states findings. It opens on a shape rather than a
+column of percentages, because there is no way to know whether 71% is good
+without something to hold it against. Five axes — opening, middlegame, tactics,
+serious errors, converting — are drawn against the measured typical range for
+players at your rating, with the gaps ranked underneath, where your win
+probability actually goes by phase and by cause, accuracy over time, and the
+openings you play scored against your band. Every game opens on its own version
+of the same report.
 
-Each destination is built to be worth arriving at with no data at all:
+**The coach** (`/`) prescribes. It names the three habits costing you the most
+and trains each one: six positions of that single motif from your own games,
+worst first, then the lesson for it, then puzzles built from it, then the
+opening it keeps happening in. Recommendations — lessons, puzzles, openings —
+come from one place and all resolve into the coach, so nothing is suggested
+without a reason attached to it.
 
-- **Lessons** lead with a *core track* — eleven lessons in the order that pays
-  off fastest, each stating why it sits where it does, with progress and a
-  resume point. It is a fallback, not the goal: the personalised plan takes
-  over the moment there are games to rank by, because an order built from your
-  own mistakes always beats a fixed one.
-- **Openings** lead with a *first repertoire* panel, which reduces 27 courses to
-  the three decisions a repertoire actually is — what you open with, and an
-  answer to each of 1.e4 and 1.d4 — offering two low-theory options for each.
-- **Puzzles** mark Practice as the place to begin, and say why.
-
-The pathways are not discarded once the app has data. The same definitions
-render as a compact strip above the dashboard, resolved against real state —
-how many mistakes were found, which lesson is next, which opening you have
-started or actually played, how many puzzles came from your own blunders — and
-their destinations retarget to match. The beginner scaffolding stands down on
-its own: the core track yields to the personal plan, and the first-repertoire
-panel gives way to the openings you actually play.
+On a first run the coach asks for your rating, because it is the one thing that
+lets it say something specific before it has seen you play. Import games and it
+stops talking about players like you and starts talking about you.
 
 ## Starting from nothing
 
-There is a separate track for people who do not play yet, reached from the
-banner above the pathways or from **Basics** in the sidebar. It is deliberately
-not a fifth pathway: the four above all assume you can already play.
+There is a separate track for people who do not play yet, under **Learn to
+play**. It is deliberately not a third feature: the coach and the report both
+assume you can already play.
 
 - **How the pieces move** — six sections, each with a diagram of every square
   the piece can reach and drills to try it. Wrong moves are not rejected;
@@ -99,24 +97,9 @@ own. Lichess rate-limits to one request at a time, and Chess.com's bot
 protection occasionally rejects browser calls — both are reported with a
 readable explanation, and pasting a PGN always works as a fallback.
 
-**A report, not a spreadsheet.** A game opens on a shape rather than a column
-of percentages, because there is no way to know whether 71% is good without
-something to hold it against. Five or six axes — opening, middlegame, endgame,
-tactics, blunders, converting — are drawn against the typical range for players
-at your rating, and everything else is one click away under *Full breakdown*.
-
-The comparison is measured, not invented. `npm run build:benchmark` samples real
-rated games from the public Lichess API across rating bands, runs them through
-the same analysis and the same scoring function that runs on your own games, and
-writes the medians and quartiles to `src/coach/benchmark.ts`. Two rules keep it
-honest: an axis your game did not contain enough of is left off the chart rather
-than drawn as zero, and a rating band with too few samples is passed over for
-the nearest one that has enough, which the page says out loud.
-
-The axes earn their place or they go. King safety was one of the original six
-and scored a flat 100 in every band across 110 games — it fired so rarely that
-it measured nothing — so it was replaced by blunder rate, which separates the
-bands cleanly.
+Analysis runs at roughly fifteen seconds a game, and each game is saved the
+moment it finishes rather than at the end of the batch, so stopping early — or
+closing the tab — keeps everything already done.
 
 **Find the pattern.** For every mistake the app works out *why* it was a mistake
 — not just "you lost 30%", but "you left a piece undefended", "you walked into a
@@ -124,21 +107,95 @@ fork", "you moved a pawn in front of your own king". Those causes aggregate
 across games into a ranked weakness profile, ordered by how much win probability
 each habit costs you per game.
 
-**Lessons that follow your profile.** 26 lessons, one per detectable weakness,
-ordered by what your games say is costing you the most. Each one mixes written
+**Lessons.** 26 of them, one per detectable weakness, each mixing written
 explanation, a checklist you can apply at the board, a worked position, and your
-own positions where the mistake actually happened.
+own positions where the mistake actually happened. The library organises them;
+it does not rank them, because ranking by your games is the coach's job and
+having both do it was the clearest case of the app giving the same advice twice.
 
 **Puzzles from your own blunders.** Every mistake becomes up to two puzzles: the
 position you faced with the move you missed, and the position after your error
-from the other side, so you learn to spot the pattern both ways.
-
-**Puzzle game modes.** Practice (spaced repetition), Weakness drill, Blunder
-rewind, Puzzle rush (3 minutes, 3 strikes), Streak, Survival, and a Daily set.
+from the other side, so you learn to spot the pattern both ways. Game modes:
+Practice (spaced repetition), Weakness drill, Blunder rewind, Puzzle rush
+(3 minutes, 3 strikes), Streak, Survival, and a Daily set.
 
 **Openings.** 27 courses across White and Black repertoires, each with a
 move-by-move walkthrough, the strategic ideas, plans for both sides, the main
 variations, known traps, and a "play the line from memory" test.
+
+## The benchmark
+
+The comparison is measured, not invented. `npm run build:benchmark` samples real
+rated games from the public Lichess API across five rating bands, runs them
+through the same analysis and the same scoring function that runs on your own
+games, and writes the medians and quartiles to `src/coach/benchmark.ts`. The
+shipped table is built from 534 games, roughly 107 per band.
+
+```bash
+CORPUS_OUT=corpus.json npm run build:benchmark    # crawl, and keep the games
+CORPUS_IN=a.json,b.json npm run build:benchmark   # re-score, deduplicated by game
+```
+
+Keeping the corpus is what makes the scoring changeable. Re-scoring one set of
+games is the only way to tell a scoring change from a sampling difference; two
+crawls through two formulas is a coincidence. Several files merge, deduplicated
+by a hash of the players, date and moves, so a second crawl grows the sample
+instead of doubling it.
+
+Two rules keep the chart honest: an axis your game did not contain enough of is
+left off rather than drawn as zero, and a rating band with too few samples is
+passed over for the nearest one that has enough, which the page says out loud.
+
+### The axes earn their place or they go
+
+Each axis has to order the rating bands and keep away from both ends of its own
+scale. Three failed and were changed; one failed twice and was removed.
+
+- **King safety** scored a flat 100 in every band across 110 games. It fired so
+  rarely that it measured nothing, and it became a blunder rate.
+- **Serious errors** then counted only blunders, which left four bands off the
+  ceiling and the fifth on it — the median game above 2000 contains no blunder.
+  Mistakes now count half and inaccuracies a quarter.
+- **Converting** summed every win-probability point lost while winning, which
+  measures churn rather than conversion: an evaluation wobbling between 90% and
+  86% for twenty moves adds up to a large number while nothing was handed over.
+  It is now the largest drawdown from a winning high-water mark. The old version
+  also moved 28 points between two samples of the same size, which is what
+  measuring noise looks like.
+- **Tactics** could only see damage above the motif detector's 8-point bar, and
+  half of all games above 2000 contain none. It now also counts moves the
+  opponent answered by force — a capture, a check or mate — which is the same
+  damage seen from the other side.
+- **The endgame** is gone. Scored as accuracy it ran 94, 93, 93, 91, 95 from the
+  bottom band to the top: four points of spread across the whole rating range,
+  because accuracy comes from win probability and win probability barely moves
+  in a position that is already decided, which most endgames are. Restricting it
+  to endgames that were still a contest gave it spread and cost it stability —
+  only a fifth of games contain one, so its band medians moved 22 points between
+  disjoint samples and it ranked the 1700s below the 1400s. Endgame accuracy is
+  still reported, as a fact about your games rather than a comparison.
+
+## Your data
+
+Everything lives in one browser profile, in IndexedDB rather than
+`localStorage`: one analysed game runs to tens of kilobytes of per-move
+evaluations, so a few dozen would blow the 5 MB quota.
+
+Because that is the only copy, three things guard it:
+
+- **Backup and restore**, in Settings. The export used to have no counterpart,
+  which is worse than having no backup at all — it reads as a safety net and is
+  not one. Restoring states what is in the file and what it would replace, and
+  refuses anything that is not ours, is from a newer format, or contains no
+  games, since restoring an empty backup over a full library would be a wipe
+  reported as a success.
+- **Storage faults are surfaced.** A failed read used to return null, which is
+  indistinguishable from an empty database, so the app came up looking like a
+  fresh install and then wrote that emptiness over data that was fine. A read
+  fault now switches writing off entirely and says so.
+- **An error boundary** around the routed page, carrying the export button
+  itself rather than a link to Settings, because the point is that reaching
+  Settings may be what is broken.
 
 ## How the analysis works
 
@@ -183,6 +240,11 @@ That produces up to two *cause* tags and two *context* tags per mistake, from 26
 motifs. When a move has several causes, its cost is split between them, so one
 blunder cannot inflate several categories at once.
 
+Detection only runs on moves that lost 8 win-probability points or more. That is
+the right bar for telling somebody they keep walking into pins — lowering it to
+4 produces 43% more tags and to 2 nearly twice as many, which turns the weakness
+list into a list of trivia.
+
 ### Puzzle generation
 
 A puzzle is only created when the answer is unambiguous — the second-best move
@@ -202,17 +264,22 @@ and rejecting those is the fastest way to lose the solver's trust.
 ## Testing
 
 ```bash
-npm test        # everything, including real-engine checks (~2 min)
-npm run test:fast   # the pure-logic suites only
+npm test             # everything, including real-engine checks (~3 min)
+npm run test:fast    # the pure-logic suites only
 npm run typecheck
 ```
 
-The suite covers static exchange evaluation and tactical geometry against known
-positions, PGN parsing across Lichess and Chess.com formats (clocks, variations,
-custom FENs, multi-game files), motif detection against known blunders, and
-weakness, puzzle and spaced-repetition logic.
+Thirteen suites, 607 assertions, and they gate the deploy: the workflow in
+`.github/workflows/deploy.yml` runs the typecheck and the full suite before
+publishing, so a bad commit stops at CI rather than on the live site.
 
-Three suites check content rather than code, because hand-written chess is easy
+They cover static exchange evaluation and tactical geometry against known
+positions, PGN parsing across Lichess and Chess.com formats (clocks, variations,
+custom FENs, multi-game files), motif detection against known blunders, the
+report's scoring arithmetic, backup parsing, and weakness, puzzle and
+spaced-repetition logic.
+
+Five suites check content rather than code, because hand-written chess is easy
 to get wrong:
 
 - `openings.test.ts` replays all 105 move sequences in the opening book and
@@ -227,26 +294,31 @@ to get wrong:
   against the engine, and proves the promise the design rests on — that a
   forced mate exists from the point where the suggestions stop.
 
+There are no render tests. Every interface change in this project has been
+checked by hand in a browser, which is the largest gap in the suite.
+
 ## Layout
 
 ```
 src/
   chess/       rules, evaluation maths, board geometry, SEE, motif detection
   engine/      Stockfish worker wrapper, analysis pipeline, React hooks
-  coach/       weakness profiling, lessons, puzzle generation, spaced repetition,
-               beginner drills, move explanation in plain English
+  coach/       weakness profiling, report scoring and the benchmark, lessons,
+               puzzle generation, spaced repetition, beginner drills,
+               move explanation in plain English
   openings/    27 opening courses and opening detection
-  components/  board (with hand-drawn SVG pieces), eval bar and graph, pathway
-               definitions, primitives
-  pages/       landing, import, review, profile, lessons, puzzles, openings,
-               basics, settings
-scripts/       starter-puzzle generator (npm run build:puzzles)
+  components/  board (with hand-drawn SVG pieces), radar and trend charts,
+               error boundary, primitives
+  pages/       coach, coach training, report, games, game review, import,
+               lessons, puzzles, openings, basics, settings
+  state/       store, IndexedDB adapter, backup file format
+scripts/       benchmark builder, starter-puzzle generator
 tests/         see above
 ```
 
-Analysed games are stored in IndexedDB rather than `localStorage`: one game runs
-to tens of kilobytes of per-move evaluations, so a few dozen games would blow the
-5 MB quota.
+Deployment is a static build — `base` is relative and the engine is the
+single-threaded Stockfish build, so there is no `SharedArrayBuffer` and none of
+the COOP/COEP headers GitHub Pages cannot set. It needs no server anywhere.
 
 ## Regenerating the starter puzzles
 
