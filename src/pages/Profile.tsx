@@ -7,9 +7,11 @@ import { RadarChart } from '../components/RadarChart';
 import { TrendChart } from '../components/TrendChart';
 import { accuracyOverTime, aggregateScores, comparableAxes, lossBreakdown, pickBand, scoreOpenings } from '../coach/report';
 import { ratingFromGames } from '../coach/recommend';
+import { progressFor } from '../coach/progress';
+import { WeaknessRow } from '../components/WeaknessRow';
 import { BENCHMARK, BENCHMARK_BUILT } from '../coach/benchmark';
 import { Board } from '../components/Board';
-import { Card, Empty, Meter, Pill, Stat, accuracyColor, formatDate, navigate } from '../components/ui';
+import { Card, Empty, Meter, Stat, accuracyColor, formatDate, navigate } from '../components/ui';
 import { MOTIF_META, type MotifTag, type MoveVerdict } from '../types';
 import { VERDICT_META } from '../chess/evaluation';
 
@@ -75,6 +77,11 @@ export function ProfilePage() {
 
   const totalMoves = Object.values(profile.verdicts).reduce((a, b) => a + b, 0);
   const examples = open ? examplesFor(games, open, 4) : [];
+  const training = useStore((s) => s.training);
+  const progress = useMemo(
+    () => Object.fromEntries(profile.weaknesses.map((w) => [w.tag, progressFor(games, w.tag, training[w.tag])])),
+    [games, profile, training],
+  );
 
   /* The shape of all your games, against players at the same rating. */
   const shape = aggregateScores(games);
@@ -179,10 +186,19 @@ export function ProfilePage() {
               value={totals.attempted ? `${Math.round((totals.solved / totals.attempted) * 100)}%` : '—'}
               label="Puzzles solved"
             />
+            {/*
+              * A number here reads as a finding, so it only appears when it is
+              * one. "+11" coloured green on two noisy halves of ten games was
+              * as likely to be chance as not.
+              */}
             <Stat
-              value={profile.momentum === null ? '—' : `${profile.momentum > 0 ? '+' : ''}${profile.momentum}`}
-              label="Recent trend"
-              tone={profile.momentum === null ? undefined : profile.momentum >= 0 ? 'var(--good)' : 'var(--bad)'}
+              value={profile.momentumVerdict === 'improving' || profile.momentumVerdict === 'worse'
+                ? `${(profile.momentum ?? 0) > 0 ? '+' : ''}${profile.momentum}`
+                : '—'}
+              label={profile.momentumVerdict === 'too-few'
+                ? 'Recent trend · needs 10 games'
+                : profile.momentumVerdict === 'unclear' ? 'Recent trend · no clear change' : 'Recent trend'}
+              tone={profile.momentumVerdict === 'improving' ? 'var(--good)' : profile.momentumVerdict === 'worse' ? 'var(--bad)' : undefined}
             />
           </div>
         </Card>
@@ -258,30 +274,28 @@ export function ProfilePage() {
             <div className="small dim">No repeating patterns found — either you are playing very cleanly, or there is not enough data yet.</div>
           ) : (
             profile.weaknesses.map((w, i) => {
-              const meta = MOTIF_META[w.tag];
               const isOpen = open === w.tag;
               return (
                 <div key={w.tag}>
-                  <div className="weakness-row">
-                    <div className="weakness-rank">{i + 1}</div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="row wrap" style={{ gap: 7 }}>
-                        <span className="bold">{meta.label}</span>
-                        <Pill>{meta.family}</Pill>
-                        {w.trend > 0.5 && <Pill color="var(--bad)">getting worse</Pill>}
-                        {w.trend < -0.5 && <Pill color="var(--good)">improving</Pill>}
-                      </div>
-                      <div className="tiny faint">
-                        {w.occurrences}× in {w.gamesAffected} game{w.gamesAffected === 1 ? '' : 's'} ·
-                        {' '}{w.perGame} win% per game · {w.share}% of all your losses
-                      </div>
-                      <div style={{ marginTop: 5 }}><Meter value={w.severity} /></div>
-                    </div>
-                    <button className="btn sm ghost" onClick={() => setOpen(isOpen ? null : w.tag)}>
-                      {isOpen ? 'Hide' : 'Examples'}
-                    </button>
-                    <a className="btn sm primary" href={`#/coach/${w.tag}`}>Train this</a>
-                  </div>
+                  {/*
+                    * The same row the coach uses. The report had its own copy
+                    * with its own labels, which is how it came to call a habit
+                    * "improving" while the coach called the same habit, from
+                    * the same games, "no clear change yet".
+                    */}
+                  <WeaknessRow
+                    weakness={w}
+                    rank={i + 1}
+                    progress={progress[w.tag]}
+                    actions={
+                      <>
+                        <button className="btn sm ghost" onClick={() => setOpen(isOpen ? null : w.tag)}>
+                          {isOpen ? 'Hide' : 'Examples'}
+                        </button>
+                        <a className="btn sm primary" href={`#/coach/${w.tag}`}>Train this</a>
+                      </>
+                    }
+                  />
                   {isOpen && (
                     <div className="fade-in" style={{ padding: '4px 0 16px 36px' }}>
                       {examples.length === 0 ? (

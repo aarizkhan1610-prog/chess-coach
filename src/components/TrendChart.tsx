@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { MIN_FOR_SLOPE, slopeTrend } from '../coach/progress';
 
 /*
  * Accuracy game by game.
@@ -8,9 +9,12 @@ import { useMemo, useState } from 'react';
  * usually get drawn: with ten noisy games, a reader who follows the zigzag
  * concludes something different every time they look at it.
  *
- * The band is a least-squares fit, and it is only drawn once there are enough
- * games for the slope to mean anything. Saying "you are improving" from four
- * games would be the most flattering possible lie.
+ * The line is a least-squares fit, and it is only drawn when the slope is
+ * real: steeper than shuffling the same games into a random order produces
+ * more than one time in twenty. It used to be drawn, and labelled "trending",
+ * whenever it passed 0.4 points a game — which on games in a random order it
+ * did 77% of the time at ten games. A drawn line is a claim; this one now has
+ * to be true.
  */
 
 const W = 640;
@@ -18,7 +22,7 @@ const H = 150;
 const PAD = { top: 12, right: 10, bottom: 22, left: 30 };
 
 /** Games below this and a trend line is drawing a shape in noise. */
-const MIN_FOR_TREND = 6;
+const MIN_FOR_TREND = MIN_FOR_SLOPE;
 
 export interface TrendPoint {
   id: string;
@@ -46,7 +50,11 @@ export function TrendChart({ points, onSelect }: { points: TrendPoint[]; onSelec
   const [hovered, setHovered] = useState<number | null>(null);
 
   const values = points.map((p) => p.accuracy);
-  const line = useMemo(() => fit(values), [values.join(',')]);
+  const key = values.join(',');
+  const trend = useMemo(() => slopeTrend(values), [key]);
+  const real = trend.verdict === 'improving' || trend.verdict === 'worse';
+  const fitted = useMemo(() => fit(values), [key]);
+  const line = real ? fitted : null;
 
   if (points.length < 2) return null;
 
@@ -106,13 +114,13 @@ export function TrendChart({ points, onSelect }: { points: TrendPoint[]; onSelec
       <div className="trend-foot small dim">
         {shown
           ? <>vs <b>{shown.label}</b> — {shown.accuracy}% accuracy{onSelect ? '. Click to open it.' : ''}</>
-          : line
-            ? line.slope > 0.4
-              ? <>Trending up: about {line.slope.toFixed(1)} points of accuracy better per game.</>
-              : line.slope < -0.4
-                ? <>Trending down: about {Math.abs(line.slope).toFixed(1)} points of accuracy worse per game.</>
-                : <>Flat across these {points.length} games — no trend either way yet.</>
-            : <>Oldest on the left. {MIN_FOR_TREND - points.length} more game{MIN_FOR_TREND - points.length === 1 ? '' : 's'} and a trend line becomes worth drawing.</>}
+          : trend.verdict === 'improving'
+            ? <>Trending up: about {Math.abs(trend.change).toFixed(1)} points of accuracy better per game — more than chance would give.</>
+            : trend.verdict === 'worse'
+              ? <>Trending down: about {Math.abs(trend.change).toFixed(1)} points of accuracy worse per game — more than chance would give.</>
+              : trend.verdict === 'unclear'
+                ? <>No clear trend across these {points.length} games — the ups and downs are within what chance produces.</>
+                : <>Oldest on the left. {MIN_FOR_TREND - points.length} more game{MIN_FOR_TREND - points.length === 1 ? '' : 's'} and the trend can be tested.</>}
       </div>
     </div>
   );

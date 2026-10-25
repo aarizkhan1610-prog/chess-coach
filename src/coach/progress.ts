@@ -154,21 +154,119 @@ const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.l
  * games lose nothing at all to any one habit, and a few lose a great deal.
  * Shuffling makes no assumption about that shape.
  */
-export function permutationP(before: number[], after: number[], seed = 1): number {
-  const observed = Math.abs(mean(after) - mean(before));
+export function permutationP(before: number[], after: number[], seed = 1, stopAt?: number): number {
+  const nb = before.length;
+  const na = after.length;
+  if (!nb || !na) return 1;
   const pool = [...before, ...after];
+  const total = pool.reduce((a, b) => a + b, 0);
+  const observed = Math.abs(mean(after) - mean(before));
   const rand = mulberry32(seed);
+  /*
+   * Where only the verdict matters, stop once p is certain to be at least
+   * `stopAt`: further shuffles can only raise it. Exact for the verdict, and
+   * most inconclusive cases settle within a few hundred shuffles rather than
+   * two thousand — which matters now that every habit on every page is tested.
+   */
+  const enough = stopAt === undefined ? Infinity : Math.ceil(stopAt * (PERMUTATIONS + 1)) - 1;
   let atLeast = 0;
   for (let i = 0; i < PERMUTATIONS; i++) {
     for (let j = pool.length - 1; j > 0; j--) {
       const k = Math.floor(rand() * (j + 1));
       [pool[j], pool[k]] = [pool[k], pool[j]];
     }
-    const diff = Math.abs(mean(pool.slice(before.length)) - mean(pool.slice(0, before.length)));
-    if (diff >= observed - 1e-9) atLeast++;
+    // Means from sums rather than slices: the same answer without allocating.
+    let sumBefore = 0;
+    for (let j = 0; j < nb; j++) sumBefore += pool[j];
+    const diff = Math.abs((total - sumBefore) / na - sumBefore / nb);
+    if (diff >= observed - 1e-9 && ++atLeast >= enough) return (atLeast + 1) / (PERMUTATIONS + 1);
   }
   // The +1s count the observed arrangement itself, so p is never exactly 0.
   return (atLeast + 1) / (PERMUTATIONS + 1);
+}
+
+/* ------------------------------------------------------------------ *
+ * Trends that have to earn their label
+ * ------------------------------------------------------------------ */
+
+/*
+ * The "improving", "getting worse" and "trending up" labels used to fire on
+ * any difference past a fixed line — half a point of win probability a game,
+ * one point of accuracy — with no account of how much games vary. Shown games
+ * in a random order, where by construction nothing is changing, they claimed a
+ * trend for 86–92% of habits and players. They now face the same test as the
+ * before-and-after-training reading, and say nothing when they cannot tell.
+ */
+export type TrendVerdict = 'improving' | 'worse' | 'unclear' | 'too-few';
+
+export interface TrendReading {
+  verdict: TrendVerdict;
+  /** Newer minus older, or the slope per game. */
+  change: number;
+  pValue: number | null;
+}
+
+/** Older games against newer ones. `higherIsBetter` is true for accuracy, false for a cost. */
+export function splitTrend(older: number[], newer: number[], higherIsBetter: boolean): TrendReading {
+  const change = Math.round((mean(newer) - mean(older)) * 10) / 10;
+  if (older.length < MIN_SIDE || newer.length < MIN_SIDE) return { verdict: 'too-few', change, pValue: null };
+  const p = permutationP(older, newer, 1, SIGNIFICANCE);
+  if (p >= SIGNIFICANCE) return { verdict: 'unclear', change, pValue: p };
+  const better = higherIsBetter ? change > 0 : change < 0;
+  return { verdict: better ? 'improving' : 'worse', change, pValue: p };
+}
+
+/** Games needed before a slope is tested at all. */
+export const MIN_FOR_SLOPE = 6;
+
+/** Least-squares slope of values against their position. */
+export function slopeOf(values: number[]): number {
+  const n = values.length;
+  if (n < 2) return 0;
+  const mx = (n - 1) / 2;
+  const my = mean(values);
+  let num = 0;
+  let den = 0;
+  for (let i = 0; i < n; i++) { num += (i - mx) * (values[i] - my); den += (i - mx) ** 2; }
+  return den ? num / den : 0;
+}
+
+/**
+ * Whether a series is really going somewhere, or just going up and down.
+ *
+ * The same shuffling idea: put the values in a random order and see how often
+ * a slope at least this steep appears. If often, the order did not matter and
+ * there is no trend to report.
+ */
+export function slopeTrend(values: number[], higherIsBetter = true, seed = 1): TrendReading {
+  const observed = slopeOf(values);
+  const change = Math.round(observed * 10) / 10;
+  if (values.length < MIN_FOR_SLOPE) return { verdict: 'too-few', change, pValue: null };
+
+  const n = values.length;
+  const mx = (n - 1) / 2;
+  const den = values.reduce((d, _, i) => d + (i - mx) ** 2, 0);
+  // Under a shuffle the mean and the spread of positions do not change, so
+  // the slope is proportional to sum((i - mx) * y) and nothing else.
+  const score = (ys: number[]) => ys.reduce((t, y, i) => t + (i - mx) * y, 0) / den;
+  const target = Math.abs(score(values));
+  const pool = [...values];
+  const rand = mulberry32(seed);
+  const enough = Math.ceil(SIGNIFICANCE * (PERMUTATIONS + 1)) - 1;
+  let atLeast = 0;
+  let p = 1;
+  let settled = false;
+  for (let i = 0; i < PERMUTATIONS; i++) {
+    for (let j = n - 1; j > 0; j--) {
+      const k = Math.floor(rand() * (j + 1));
+      [pool[j], pool[k]] = [pool[k], pool[j]];
+    }
+    if (Math.abs(score(pool)) >= target - 1e-9 && ++atLeast >= enough) { settled = true; break; }
+  }
+  p = (atLeast + 1) / (PERMUTATIONS + 1);
+  if (settled || p >= SIGNIFICANCE) return { verdict: 'unclear', change, pValue: p };
+  const better = higherIsBetter ? observed > 0 : observed < 0;
+  return { verdict: better ? 'improving' : 'worse', change, pValue: p };
 }
 
 export function progressFor(

@@ -45,8 +45,13 @@ export function WeaknessRow({
             * about the same habit would be worse than either one.
             */}
           {trained && <ProgressPill reading={progress!} />}
-          {!trained && weakness.trend > 0.5 && <Pill color="var(--bad)">getting worse</Pill>}
-          {!trained && weakness.trend < -0.5 && <Pill color="var(--good)">improving</Pill>}
+          {/*
+            * Only a change that survived the significance test earns a label.
+            * The old rule labelled any half-point difference, which on games
+            * in a random order meant almost every habit, every time.
+            */}
+          {!trained && weakness.trendVerdict === 'worse' && <Pill color="var(--bad)">getting worse</Pill>}
+          {!trained && weakness.trendVerdict === 'improving' && <Pill color="var(--good)">improving</Pill>}
         </div>
         <div className="tiny faint">
           {weakness.occurrences}× in {weakness.gamesAffected} game{weakness.gamesAffected === 1 ? '' : 's'} ·

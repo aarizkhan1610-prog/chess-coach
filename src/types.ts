@@ -243,8 +243,13 @@ export interface WeaknessStat {
   share: number;
   /** 0..100 composite priority. */
   severity: number;
-  /** Positive = getting worse recently. */
+  /** Newer half minus older half, win% per game. Positive = higher lately. */
   trend: number;
+  /**
+   * Whether that difference is more than chance. Only 'improving' and 'worse'
+   * may be shown as a label; the raw difference fired on almost anything.
+   */
+  trendVerdict: 'improving' | 'worse' | 'unclear' | 'too-few';
   examples: { gameId: string; ply: number }[];
 }
 
@@ -257,6 +262,8 @@ export interface Profile {
   weaknesses: WeaknessStat[];
   /** Accuracy of the last 5 games vs the 5 before that. */
   momentum: number | null;
+  /** Whether recent games are really better or worse, not just different. */
+  momentumVerdict: 'improving' | 'worse' | 'unclear' | 'too-few';
   openingRecord: {
     openingId: string;
     name: string;
