@@ -14,7 +14,9 @@
     "build:benchmark": "tsx scripts/build-benchmark.ts"
   },
   "dependencies": {
+    "@fontsource-variable/nunito": "^5.3.0",
     "chess.js": "^1.4.0",
+    "lucide-react": "^1.61.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "zustand": "^5.0.15"

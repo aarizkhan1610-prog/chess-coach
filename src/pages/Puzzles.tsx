@@ -7,7 +7,8 @@ import { puzzlesFromGames, isCorrectFirstMove, ratingBand } from '../coach/puzzl
 import { STARTER_PUZZLES } from '../coach/starterPuzzles';
 import { selectPuzzles } from '../coach/srs';
 import { Board } from '../components/Board';
-import { Card, Empty, Pill, Spinner, formatClock, navigate } from '../components/ui';
+import { Card, Empty, Pill, Spinner, TurnHeader, formatClock, navigate } from '../components/ui';
+import { Flag, Lightbulb, SkipForward } from 'lucide-react';
 import { TrainBrowser, type TrainNode } from '../components/TrainBrowser';
 import { MOTIF_META, type MotifTag, type Puzzle } from '../types';
 import { getEngine } from '../engine/uci';
@@ -556,14 +557,18 @@ export function PuzzleView({ puzzle, onResult, onNext, allowRetry = true }: {
       </div>
 
       <div className="grid">
-        <Card>
-          <div className="row wrap" style={{ marginBottom: 10 }}>
-            <Pill solid>{solverColor === 'w' ? 'White to play' : 'Black to play'}</Pill>
-            <Pill>{puzzle.rating} · {ratingBand(puzzle.rating)}</Pill>
-            {total > 1 && <Pill>{total} moves</Pill>}
-            {puzzle.origin === 'your-miss' && <Pill color="var(--v-blunder)">your mistake</Pill>}
-            {puzzle.origin === 'punish' && <Pill color="var(--v-best)">punish it</Pill>}
-          </div>
+        <Card className="play-panel">
+          <TurnHeader
+            color={solverColor}
+            title={solverColor === 'w' ? 'White to move' : 'Black to move'}
+            meta={<>{puzzle.rating} · {ratingBand(puzzle.rating)}{total > 1 ? ` · ${total} moves` : ''}</>}
+          />
+          {(puzzle.origin === 'your-miss' || puzzle.origin === 'punish') && (
+            <div className="row wrap" style={{ marginBottom: 10 }}>
+              {puzzle.origin === 'your-miss' && <Pill color="var(--v-blunder)">from your own game</Pill>}
+              {puzzle.origin === 'punish' && <Pill color="var(--v-best)">punish their mistake</Pill>}
+            </div>
+          )}
 
           <p>{puzzle.prompt}</p>
 
@@ -597,16 +602,21 @@ export function PuzzleView({ puzzle, onResult, onNext, allowRetry = true }: {
               </div>
               {engineNote && <p className="small dim">{engineNote}</p>}
               <p className="small">{puzzle.explanation}</p>
-              <button className="btn primary" style={{ width: '100%' }} onClick={onNext}>Next puzzle →</button>
+              <button className="btn primary lg" style={{ width: '100%' }} onClick={onNext}>Next puzzle →</button>
             </div>
           )}
 
           {status === 'solving' && (
-            <div className="row" style={{ marginTop: 12, gap: 6 }}>
-              <button className="btn sm ghost" onClick={hint} disabled={Boolean(hintSquare)}>Hint</button>
-              <button className="btn sm ghost" onClick={reveal}>Give up</button>
-              <div className="spacer" />
-              <button className="btn sm ghost" onClick={onNext}>Skip</button>
+            <div className="action-bar">
+              <button className="btn" onClick={hint} disabled={Boolean(hintSquare)}>
+                <Lightbulb size={17} strokeWidth={2.2} /> {hintSquare ? 'Hint shown' : 'Hint'}
+              </button>
+              <button className="btn" onClick={reveal}>
+                <Flag size={17} strokeWidth={2.2} /> Give up
+              </button>
+              <button className="btn" onClick={onNext}>
+                <SkipForward size={17} strokeWidth={2.2} /> Skip
+              </button>
             </div>
           )}
         </Card>

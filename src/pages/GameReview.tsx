@@ -11,6 +11,7 @@ import { VERDICT_META, formatEval } from '../chess/evaluation';
 import { lessonTitleFor } from '../coach/lessons';
 import { openingById } from '../openings';
 import { GameReport } from '../components/GameReport';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
 const SUMMARY_ORDER: MoveVerdict[] = ['brilliant', 'great', 'best', 'good', 'book', 'inaccuracy', 'mistake', 'blunder'];
 
@@ -137,14 +138,23 @@ export function GameReviewPage({ gameId }: { gameId: string }) {
             />
           </div>
 
-          <div className="row" style={{ justifyContent: 'center', gap: 6 }}>
-            <button className="btn sm" onClick={() => setPly(-1)} title="Start (Home)">⏮</button>
-            <button className="btn sm" onClick={() => setPly((p) => Math.max(-1, p - 1))} title="Previous (←)">◀</button>
-            <span className="mono small dim" style={{ minWidth: 92, textAlign: 'center' }}>
+          {/* The control you use most when reviewing, so it is the largest thing under the board. */}
+          <div className="move-controls">
+            <button className="btn" onClick={() => setPly(-1)} title="Start (Home)" aria-label="Start">
+              <ChevronsLeft size={22} strokeWidth={2.4} />
+            </button>
+            <button className="btn" onClick={() => setPly((p) => Math.max(-1, p - 1))} title="Previous (←)" aria-label="Previous move">
+              <ChevronLeft size={22} strokeWidth={2.4} />
+            </button>
+            <span className="move-controls-now mono">
               {move ? `${move.moveNumber}${move.color === 'w' ? '.' : '…'} ${move.san}` : 'Start'}
             </span>
-            <button className="btn sm" onClick={() => setPly((p) => Math.min(game.moves.length - 1, p + 1))} title="Next (→)">▶</button>
-            <button className="btn sm" onClick={() => setPly(game.moves.length - 1)} title="End (End)">⏭</button>
+            <button className="btn" onClick={() => setPly((p) => Math.min(game.moves.length - 1, p + 1))} title="Next (→)" aria-label="Next move">
+              <ChevronRight size={22} strokeWidth={2.4} />
+            </button>
+            <button className="btn" onClick={() => setPly(game.moves.length - 1)} title="End (End)" aria-label="End">
+              <ChevronsRight size={22} strokeWidth={2.4} />
+            </button>
           </div>
 
           <Card title="Win probability" className="pad-0" >

@@ -32,6 +32,8 @@ export interface Settings {
   ratingAsked: boolean;
   depth: AnalysisDepthPreset;
   theme: 'dark' | 'light';
+  /** Board colours. Green is the classic tournament board. */
+  board: 'green' | 'brown' | 'blue';
   /** Orient the board to the side you played. */
   autoOrient: boolean;
   /** Include puzzles built from the opponent's blunders. */
@@ -101,6 +103,7 @@ const DEFAULT_SETTINGS: Settings = {
   ratingAsked: false,
   depth: 'balanced',
   theme: 'dark',
+  board: 'green',
   autoOrient: true,
   includePunishPuzzles: true,
   sidebarCollapsed: false,

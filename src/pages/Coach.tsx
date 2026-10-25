@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { BrowseLink, Disclosure, Pill, navigate } from '../components/ui';
+import { Download } from 'lucide-react';
 import { RatingPrompt } from '../components/RatingPrompt';
 import { WeaknessRow } from '../components/WeaknessRow';
 import { RecommendationCards } from '../components/Recommendations';
@@ -208,14 +209,18 @@ export function CoachPage() {
 
       {games.length === 0 && (
         <section className="coach-block">
-          <div className="card">
-            <p style={{ marginTop: 0 }}>
-              Everything below this line is about players in general. Import a few games and it becomes about
-              you — every move checked on this machine, nothing uploaded.
-            </p>
-            <div className="row wrap" style={{ gap: 'var(--space-2)' }}>
-              <button className="btn primary" onClick={() => navigate('/import')}>Import your games</button>
-              <button className="btn" onClick={() => navigate('/basics/play')}>Play a coached game</button>
+          <div className="hero-card">
+            <div className="hero-icon" aria-hidden><Download size={34} strokeWidth={2.4} /></div>
+            <div>
+              <h2>Let the coach read your games</h2>
+              <p>
+                Everything below is about players in general. Import a few games and it becomes about you —
+                every move checked on this machine, nothing uploaded.
+              </p>
+              <div className="hero-actions">
+                <button className="btn primary lg" onClick={() => navigate('/import')}>Import your games</button>
+                <button className="btn lg" onClick={() => navigate('/basics/play')}>Play a coached game</button>
+              </div>
             </div>
           </div>
         </section>

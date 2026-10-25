@@ -8,6 +8,13 @@ import { STARTER_PUZZLES } from '../coach/starterPuzzles';
 import { ALL_OPENINGS } from '../openings';
 import { ALL_LESSONS } from '../coach/lessons';
 
+/* Drawn from the same values as the board themes in styles.css. */
+const BOARD_THEMES = [
+  { id: 'green', label: 'Green', light: '#eeeed2', dark: '#769656' },
+  { id: 'brown', label: 'Brown', light: '#f0d9b5', dark: '#b58863' },
+  { id: 'blue', label: 'Blue', light: '#dee3e6', dark: '#8ca2ad' },
+] as const;
+
 export function SettingsPage() {
   const settings = useStore((s) => s.settings);
   const setSettings = useStore((s) => s.setSettings);
@@ -130,6 +137,25 @@ export function SettingsPage() {
                 <button key={t} className={`seg-item ${settings.theme === t ? 'on' : ''}`}
                   aria-pressed={settings.theme === t} onClick={() => setSettings({ theme: t })}>
                   {t === 'dark' ? 'Dark' : 'Light'}
+                </button>
+              ))}
+            </div>
+            <div className="small dim" style={{ margin: 'var(--space-4) 0 var(--space-2)' }}>Board</div>
+            <div className="board-swatches" role="group" aria-label="Board colours">
+              {BOARD_THEMES.map((b) => (
+                <button
+                  key={b.id}
+                  className={`board-swatch ${(settings.board ?? 'green') === b.id ? 'on' : ''}`}
+                  aria-pressed={(settings.board ?? 'green') === b.id}
+                  onClick={() => setSettings({ board: b.id })}
+                  title={b.label}
+                >
+                  <span className="board-swatch-grid" aria-hidden>
+                    {[0, 1, 2, 3].map((i) => (
+                      <span key={i} style={{ background: (i === 0 || i === 3) ? b.light : b.dark }} />
+                    ))}
+                  </span>
+                  <span className="tiny">{b.label}</span>
                 </button>
               ))}
             </div>

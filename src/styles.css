@@ -3,65 +3,82 @@
  * ---------------------------------------------------------------- */
 :root {
   /*
-   * Surfaces, spaced by perceptual lightness rather than by eye.
+   * A warm charcoal, measured.
    *
-   * The old steps were 4.3, 7.2, 3.8 and 8.8 in L*, which is why the interface
-   * read as flat: a card sat 3.8 points of lightness away from the thing
-   * beside it, and a border 8.8 from the card it was supposed to outline. At
-   * that distance a surface is not a plane, it is a rumour. The WCAG contrast
-   * ratio says almost nothing here — at these luminances its +0.05 offset
-   * swamps the comparison and every pair comes back near 1.1 — so these are
-   * spaced in CIELAB L*, where a step of 5 is the point a large area starts
-   * reading as a different plane.
+   * The previous palette was a cool blue-slate, which is the single biggest
+   * reason the app read like a developer dashboard rather than somewhere to
+   * play chess: measured off the live sites, chess.com sits on #302e2b and
+   * Lichess on #161512, both warm near-blacks with a little brown in them.
+   * This takes that family and spaces it by the same rules as before —
+   * perceptual lightness (CIELAB L*) between layers, since the WCAG ratio
+   * says nothing useful about dark-on-dark surfaces:
    *
-   *   bg → bg-elev           5.5
-   *   bg → surface          11.3
-   *   surface → surface-2    6.5
-   *   surface → border      14.7
-   *   surface → border-strong 34.2, and 3.3:1 — the WCAG bar for the boundary
-   *                           of a control, which is what it mostly draws
+   *   bg → bg-elev          5.2      (sidebar)
+   *   bg → surface          7.5      (cards)
+   *   surface → surface-2   6.7      (anything raised inside a card)
+   *   surface → border     12.6
+   *   control border        3.26:1 on a card — the WCAG bar for a control
    */
-  --bg: #0d0f15;
-  --bg-elev: #171b26;
-  --surface: #212734;
-  --surface-2: #2d3545;
-  --border: #3e4859;
-  --border-strong: #697792;
+  --bg: #161512;
+  --bg-elev: #221f1c;
+  --surface: #262421;
+  --surface-2: #36322d;
+  --border: #433f39;
+  --border-strong: #7a7266;
 
-  /* Every pair below is AA against bg, surface and surface-2, except
-   * --text-faint, which is for metadata and clears the 3:1 large-text bar. */
-  --text: #e8ebf2;
-  --text-dim: #a7b1c2;
-  --text-faint: #7a8597;
+  /* AA (4.5:1) against bg, surface and surface-2, except --text-faint, which is
+   * for metadata and clears the 3:1 large-text bar on all three. */
+  --text: #f2eee7;
+  --text-dim: #bdb4a6;
+  --text-faint: #948b7e;
 
-  --accent: #d9a441;
-  --accent-dim: #8a6a2b;
-  --accent-text: #1a1206;
+  /*
+   * The accent stays gold rather than borrowing chess.com's green. Green
+   * already means "better" everywhere in this app — improving habits, good
+   * moves — and the colour of the main button should not be one that also
+   * reports a result.
+   */
+  --accent: #e8ad3f;
+  --accent-hi: #f4c461;
+  --accent-lo: #c98f22;
+  --accent-dim: #8f6a24;
+  --accent-text: #1f1503;
 
-  --good: #5cb85c;
-  --bad: #e86a6a;
-  --info: #5b9bd5;
+  --good: #6cc070;
+  --bad: #f27b72;
+  --info: #6fa8dc;
 
-  /* Move verdicts */
+  /* Move verdicts — every one AA on a card. */
   --v-brilliant: #22c7d6;
-  --v-great: #4d9de0;
-  --v-best: #5cb85c;
-  --v-good: #8ab661;
-  --v-book: #9c8b7a;
-  --v-inaccuracy: #e8c34a;
-  --v-mistake: #e89440;
-  --v-blunder: #e86a6a;
+  --v-great: #5ea8e8;
+  --v-best: #6cc070;
+  --v-good: #93c06a;
+  --v-book: #a8977f;
+  --v-inaccuracy: #ecc64e;
+  --v-mistake: #ef9a45;
+  --v-blunder: #f27b72;
 
-  /* Board */
-  --sq-light: #ecd9b9;
-  --sq-dark: #ab7a53;
-  --sq-light-sel: #e8dc84;
-  --sq-dark-sel: #c4b054;
-  --sq-check: #e06666;
+  /* Board: the classic tournament green by default; brown and blue in Settings. */
+  --sq-light: #eeeed2;
+  --sq-dark: #769656;
+  --sq-light-sel: #f6f669;
+  --sq-dark-sel: #baca2b;
+  --sq-check: #e5534b;
   --piece-white: #f7f5f0;
   --piece-white-line: #2b2520;
   --piece-black: #33302c;
   --piece-black-line: #0e0d0c;
+
+  /*
+   * Depth, from the recipe measured on chess.com's buttons: a light edge on
+   * top, a dark edge underneath, and two soft drop shadows. It is what makes a
+   * control read as an object you press rather than a coloured rectangle.
+   */
+  --lift: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 1px 2px rgba(0, 0, 0, 0.18), 0 2px 4px rgba(0, 0, 0, 0.12);
+  --lift-hover: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 2px 4px rgba(0, 0, 0, 0.22), 0 4px 10px rgba(0, 0, 0, 0.16);
+  --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.14);
+
+  --display: 'Nunito Variable', 'Nunito', system-ui, sans-serif;
 
   /*
    * Spacing scale.
@@ -95,27 +112,55 @@
    */
   --measure: 58ch;
 
-  --radius: 10px;
-  --radius-sm: 6px;
+  --radius: 12px;
+  --radius-sm: 8px;
   --shadow: 0 2px 8px rgba(0, 0, 0, 0.32);
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
 }
 
 :root[data-theme='light'] {
-  --bg: #f4f2ee;
-  --bg-elev: #ffffff;
+  --bg: #f3f1ec;
+  --bg-elev: #ebe7e0;
   --surface: #ffffff;
-  --surface-2: #f0ede7;
-  --border: #ddd8cf;
-  --border-strong: #c4bdb0;
-  --text: #22252b;
-  --text-dim: #5c6472;
-  --text-faint: #8a93a3;
-  --accent: #a9761a;
-  --accent-dim: #d9bc80;
-  --accent-text: #ffffff;
+  --surface-2: #f3efe8;
+  --border: #ddd6ca;
+  --border-strong: #9a9184;
+  --text: #24211d;
+  --text-dim: #5d564c;
+  --text-faint: #7e766a;
+  /*
+   * Gold does two jobs and light mode needs a different value for each. As
+   * text (links, card labels) it has to be dark enough for 4.5:1 on white —
+   * #8a5a0b gives 5.9. As a button fill it can stay bright, with dark text on
+   * it like dark mode has: 10.5:1 at the top of the gradient. White text on a
+   * gold fill measured 2.6:1, which is why it is not used.
+   */
+  --accent: #8a5a0b;
+  --accent-hi: #f2be57;
+  --accent-lo: #d79c2a;
+  --accent-dim: #d9b877;
+  --accent-text: #1f1503;
+  --good: #27773a;
+  --bad: #c2392f;
+  --lift: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 1px 2px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.06);
+  --lift-hover: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 2px 5px rgba(0, 0, 0, 0.12), 0 4px 10px rgba(0, 0, 0, 0.08);
+  --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.05);
   --shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Board colour themes, chosen in Settings. The default above is green. */
+:root[data-board='brown'] {
+  --sq-light: #f0d9b5;
+  --sq-dark: #b58863;
+  --sq-light-sel: #f7ec74;
+  --sq-dark-sel: #dac34b;
+}
+:root[data-board='blue'] {
+  --sq-light: #dee3e6;
+  --sq-dark: #8ca2ad;
+  --sq-light-sel: #c3d888;
+  --sq-dark-sel: #92b166;
 }
 
 * { box-sizing: border-box; }
@@ -138,11 +183,19 @@ body {
  * now spaced enough to establish order at a glance, with weight and colour
  * carrying the last step rather than size alone.
  */
-h1, h2, h3, h4 { margin: 0; line-height: 1.25; letter-spacing: -0.015em; color: var(--text); }
-h1 { font-size: 1.7rem; font-weight: 700; }
-h2 { font-size: 1.25rem; font-weight: 680; }
-h3 { font-size: 1.02rem; font-weight: 700; }
-h4 { font-size: 0.95rem; font-weight: 680; }
+/*
+ * Headings in a heavy rounded display face, body in the system font. Both
+ * reference apps split it the same way — a characterful bold for titles and
+ * plain, fast-to-read text for everything else — and the weight is most of the
+ * character: chess.com sets its titles at 800. The face is bundled with the
+ * app rather than loaded from Google, so opening it makes no third-party
+ * request.
+ */
+h1, h2, h3, h4 { margin: 0; line-height: 1.2; letter-spacing: -0.01em; color: var(--text); font-family: var(--display); }
+h1 { font-size: 2rem; font-weight: 850; letter-spacing: -0.02em; }
+h2 { font-size: 1.32rem; font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 800; }
+h4 { font-size: 0.95rem; font-weight: 750; }
 /*
  * Cap the measure. Body copy ran to 141 characters per line on a wide screen,
  * roughly double the comfortable range, which makes the eye lose its place on
@@ -185,26 +238,40 @@ li { margin-bottom: 0.3em; }
 }
 
 .brand {
-  display: flex; align-items: center; gap: var(--space-2);
-  padding: 4px 8px 16px;
-  font-weight: 700; font-size: 1.05rem; letter-spacing: -0.02em;
+  display: flex; align-items: center; gap: 10px;
+  padding: 4px 8px 18px;
+  font-family: var(--display); font-weight: 900; font-size: 1.12rem; letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 .brand-mark {
-  width: 26px; height: 26px; border-radius: 7px;
-  background: var(--accent); color: var(--accent-text);
-  display: grid; place-items: center; font-size: 17px; line-height: 1;
+  width: 32px; height: 32px; border-radius: 9px;
+  background: linear-gradient(var(--accent-hi), var(--accent-lo)); color: var(--accent-text);
+  display: grid; place-items: center; font-size: 19px; line-height: 1;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -2px 0 rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
+/*
+ * The navigation, after chess.com's left rail: a real icon, the label in the
+ * display face, and an active item you can see from across the room — a raised
+ * row with a gold bar, rather than a shade one step lighter than its neighbours.
+ */
 .nav-item {
-  display: flex; align-items: center; gap: var(--space-2);
-  padding: 8px 10px; border-radius: var(--radius-sm);
+  position: relative;
+  display: flex; align-items: center; gap: 12px;
+  min-height: 42px; padding: 9px 12px; border-radius: var(--radius-sm);
   color: var(--text-dim); cursor: pointer; border: none; background: none;
-  font: inherit; text-align: left; width: 100%;
-  transition: background 0.12s, color 0.12s;
+  font-family: var(--display); font-size: 0.98rem; font-weight: 750;
+  text-align: left; width: 100%; text-decoration: none;
+  transition: background 0.14s, color 0.14s;
 }
 .nav-item:hover { background: var(--surface); color: var(--text); }
-.nav-item.active { background: var(--surface-2); color: var(--text); font-weight: 600; }
-.nav-item .nav-icon { width: 18px; text-align: center; opacity: 0.9; font-size: 15px; }
+.nav-item.active { background: var(--surface-2); color: var(--text); box-shadow: var(--lift); }
+.nav-item.active::before {
+  content: ''; position: absolute; left: 0; top: 9px; bottom: 9px; width: 3px;
+  border-radius: 0 3px 3px 0; background: var(--accent);
+}
+.nav-item .nav-icon { width: 22px; display: grid; place-items: center; flex: none; opacity: 0.85; }
+.nav-item.active .nav-icon { color: var(--accent); opacity: 1; }
 .nav-badge {
   margin-left: auto; background: var(--accent); color: var(--accent-text);
   border-radius: 99px; padding: 0 6px; font-size: 11px; font-weight: 700; line-height: 17px;
@@ -293,11 +360,14 @@ li { margin-bottom: 0.3em; }
 /* ---------------------------------------------------------------- *
  * Primitives
  * ---------------------------------------------------------------- */
+/* Cards sit on the page rather than being drawn on it: a soft shadow and a
+ * faint top highlight, the same depth language as the buttons. */
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035), var(--card-shadow);
 }
 .card.pad-0 { padding: 0; }
 .card-head {
@@ -311,44 +381,91 @@ li { margin-bottom: 0.3em; }
 .row.wrap { flex-wrap: wrap; }
 .spacer { flex: 1; }
 
+/*
+ * Buttons you can feel.
+ *
+ * Built on the recipe measured off chess.com's controls: a fill, a light edge
+ * along the top, a dark edge along the bottom, two soft drop shadows, and a
+ * one-pixel press when clicked. Flat colour reads as a label; this reads as an
+ * object, which is most of what "smooth" means in an interface like this.
+ *
+ * Three tiers, which still differ by fill rather than by existence — the
+ * quiet one used to be indistinguishable from body text, so all three keep
+ * a visible edge:
+ *   primary  gold gradient, heavy display type — the one thing to do
+ *   default  raised surface — an alternative
+ *   ghost    outlined, no fill — everything else
+ */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
-  padding: 8px 14px; border-radius: var(--radius-sm);
+  min-height: 40px; padding: 8px 16px; border-radius: var(--radius-sm);
   background: var(--surface-2); color: var(--text);
-  border: 1px solid var(--border-strong);
-  font: inherit; font-weight: 550; cursor: pointer;
-  transition: background 0.12s, border-color 0.12s, opacity 0.12s;
+  border: 1px solid var(--border);
+  box-shadow: var(--lift);
+  font: inherit; font-weight: 650; cursor: pointer; line-height: 1.2;
+  transition: background 0.14s, border-color 0.14s, box-shadow 0.14s, transform 0.08s, filter 0.14s;
 }
-.btn:hover:not(:disabled) { background: var(--border); }
-.btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
-.btn.primary:hover:not(:disabled) { filter: brightness(1.08); }
+.btn:hover:not(:disabled) { background: #3e3a34; border-color: var(--border-strong); box-shadow: var(--lift-hover); }
+:root[data-theme='light'] .btn:hover:not(:disabled) { background: #ebe5db; }
+.btn:active:not(:disabled) { transform: translateY(1px); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3); }
+.btn:disabled { cursor: not-allowed; }
+.btn svg { flex: none; }
+
+.btn.primary {
+  background: linear-gradient(var(--accent-hi), var(--accent-lo));
+  border-color: var(--accent-lo);
+  color: var(--accent-text);
+  font-family: var(--display); font-weight: 850; letter-spacing: 0.005em;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.18),
+    0 1px 2px rgba(0, 0, 0, 0.2),
+    0 3px 8px rgba(201, 143, 34, 0.25);
+}
+.btn.primary:hover:not(:disabled) {
+  background: linear-gradient(var(--accent-hi), var(--accent-lo));
+  border-color: var(--accent-lo);
+  filter: brightness(1.07);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.18),
+    0 2px 4px rgba(0, 0, 0, 0.22),
+    0 6px 14px rgba(201, 143, 34, 0.32);
+}
+.btn.primary:active:not(:disabled) { box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.25); }
 /*
- * The quiet tier, which still has to look like a control.
- *
- * This was `background: none; border-color: transparent; color: var(--text-dim)`
- * — which is the exact description of dim body text. "Hint" and "Skip" beside
- * a puzzle were indistinguishable from the sentence above them, and the only
- * affordance left was a hover state, which says nothing to somebody deciding
- * whether there is anything there to press.
- *
- * Three tiers now, and they differ by fill rather than by existence: accent
- * fill for the one action, surface fill for an alternative, outline for the
- * rest. All three carry a border.
+ * Disabled is a different state, not a faded version of the same one. A gold
+ * gradient at 45% opacity reads as brown, not as "not yet" — so a disabled
+ * button of any tier drops to a flat, edgeless surface with dim text.
  */
-.btn.ghost { background: none; border-color: var(--border-strong); color: var(--text); }
-.btn.ghost:hover:not(:disabled) { background: var(--surface-2); border-color: var(--accent-dim); }
+.btn:disabled, .btn.primary:disabled {
+  background: var(--surface-2); border-color: var(--border); color: var(--text-faint);
+  box-shadow: none; filter: none; opacity: 1;
+}
+
+/* The large call to action — the size chess.com gives "Play" and "Start". */
+.btn.lg { min-height: 52px; padding: 12px 26px; font-size: 1.08rem; border-radius: 10px; }
+
+.btn.ghost { background: transparent; border-color: var(--border-strong); color: var(--text); box-shadow: none; }
+.btn.ghost:hover:not(:disabled) { background: var(--surface-2); border-color: var(--accent-dim); box-shadow: var(--lift); }
 
 /* For the handful of places that genuinely are navigation rather than an
  * action — a back link above a title — where a box would be noise. */
 .btn.link {
-  background: none; border-color: transparent; color: var(--text-dim);
-  padding-left: var(--space-1); padding-right: var(--space-1);
+  background: none; border-color: transparent; color: var(--text-dim); box-shadow: none;
+  min-height: 0; padding-left: var(--space-1); padding-right: var(--space-1);
 }
-.btn.link:hover:not(:disabled) { background: none; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
-.btn.sm { padding: 5px 10px; font-size: 0.86rem; }
-.btn.danger { border-color: var(--bad); color: var(--bad); background: none; }
-.btn.danger:hover:not(:disabled) { background: rgba(232, 106, 106, 0.14); }
+.btn.link:hover:not(:disabled) { background: none; box-shadow: none; color: var(--accent); }
+.btn.link:active:not(:disabled) { transform: none; box-shadow: none; }
+
+.btn.sm { min-height: 32px; padding: 5px 12px; font-size: 0.86rem; }
+.btn.danger { border-color: var(--bad); color: var(--bad); background: transparent; box-shadow: none; }
+.btn.danger:hover:not(:disabled) { background: rgba(242, 123, 114, 0.12); border-color: var(--bad); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+  .btn:active:not(:disabled) { transform: none; }
+}
 
 .pill {
   display: inline-flex; align-items: center; gap: var(--space-1);
@@ -482,7 +599,18 @@ tr.clickable:hover td { background: var(--surface-2); }
  * screen. The minimums stop either side collapsing before the breakpoint.
  */
 .split { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(260px, 32%); gap: var(--space-5); align-items: start; }
-.split.wide { grid-template-columns: minmax(300px, 46%) minmax(280px, 1fr); }
+/*
+ * Board pages put the board first. The panel gets a fixed width and the board
+ * takes everything else — as chess.com and Lichess both do — capped by the
+ * window's height so the whole board is always on screen without scrolling.
+ * It used to be a fixed 46% of the page, which left it at under 400px on a
+ * laptop with half the screen empty beside it.
+ */
+.split.wide { grid-template-columns: minmax(300px, 1fr) minmax(300px, 380px); }
+.split.wide .board-wrap { max-width: calc(100vh - 150px); }
+.split.wide .board, .split .board {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25), 0 10px 28px rgba(0, 0, 0, 0.28);
+}
 .split > *, .split.wide > * { min-width: 0; }
 .board-col { display: flex; gap: var(--space-2); align-items: stretch; }
 .board-col .board-wrap { flex: 1; min-width: 0; }
@@ -1170,20 +1298,25 @@ tr.clickable:hover td { background: var(--surface-2); }
   display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
   gap: var(--space-3); margin-bottom: var(--space-6);
 }
+/* Recommendation cards lift towards the pointer — the small motion that makes
+ * a grid of choices feel like things you can pick up rather than a list. */
 .rec-card {
   display: flex; flex-direction: column; gap: var(--space-2); text-align: left;
-  padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius);
-  background: var(--bg-elev); color: var(--text); font: inherit; cursor: pointer;
+  padding: var(--space-4) var(--space-4) var(--space-4); border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); color: var(--text); font: inherit; cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035), var(--card-shadow);
+  transition: transform 0.16s ease, border-color 0.16s, box-shadow 0.16s;
 }
-.rec-card:hover { border-color: var(--accent); }
+.rec-card:hover { border-color: var(--accent-dim); transform: translateY(-2px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 4px 8px rgba(0, 0, 0, 0.22), 0 12px 24px rgba(0, 0, 0, 0.2); }
+.rec-card:active { transform: translateY(0); }
 .rec-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .rec-source {
   font-size: 0.68rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
   color: var(--accent);
 }
-.rec-title { font-size: 1.02rem; font-weight: 680; line-height: 1.35; }
+.rec-title { font-family: var(--display); font-size: 1.08rem; font-weight: 800; line-height: 1.3; }
 .rec-why { font-size: 0.87rem; color: var(--text-dim); line-height: 1.5; flex: 1; }
-.rec-cta { font-size: 0.85rem; font-weight: 640; color: var(--accent); }
+.rec-cta { font-size: 0.88rem; font-weight: 750; color: var(--accent); font-family: var(--display); }
 
 .home-next h2 { margin: 0 0 var(--space-3); }
 .home-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: var(--space-3); }
@@ -1392,3 +1525,70 @@ tr.clickable:hover td { background: var(--surface-2); }
 .working-change { color: var(--good); font-weight: 700; }
 .working-row .tiny { grid-column: 1 / -1; }
 .coach-set-aside { margin-top: calc(-1 * var(--space-2)); margin-bottom: var(--space-5); max-width: var(--measure); }
+
+/* Board colour picker — a real 2×2 of each board, not a word describing it. */
+.board-swatches { display: flex; gap: var(--space-3); flex-wrap: wrap; }
+.board-swatch {
+  display: grid; gap: 6px; justify-items: center;
+  padding: 8px; border-radius: var(--radius-sm);
+  background: var(--surface-2); border: 2px solid transparent; box-shadow: var(--lift);
+  color: var(--text-dim); font: inherit; cursor: pointer;
+  transition: border-color 0.14s, transform 0.08s;
+}
+.board-swatch:hover { border-color: var(--border-strong); }
+.board-swatch.on { border-color: var(--accent); color: var(--text); }
+.board-swatch-grid { display: grid; grid-template-columns: 1fr 1fr; width: 48px; height: 48px; border-radius: 4px; overflow: hidden; }
+
+/* ---------------------------------------------------------------- *
+ * Board-side panel: whose move, and what you can do about it
+ * ---------------------------------------------------------------- */
+.turn-header {
+  display: flex; align-items: center; gap: var(--space-3);
+  margin: -2px 0 var(--space-4);
+}
+.turn-piece {
+  flex: none; width: 50px; height: 50px; border-radius: 12px;
+  display: grid; place-items: center;
+  background: var(--sq-light);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -2px 0 rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+.turn-title { font-family: var(--display); font-weight: 900; font-size: 1.35rem; line-height: 1.15; }
+.turn-meta { font-size: 0.84rem; color: var(--text-dim); margin-top: 2px; }
+
+/* Equal-width icon-and-label buttons along the bottom of a panel. */
+.action-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2); margin-top: var(--space-4); }
+.action-bar .btn { min-height: 44px; padding-left: 6px; padding-right: 6px; gap: 6px; white-space: nowrap; }
+@media (max-width: 420px) { .action-bar .btn { font-size: 0.88rem; } }
+
+/* ---------------------------------------------------------------- *
+ * The first-run hero — one thing to do, said large
+ * ---------------------------------------------------------------- */
+.hero-card {
+  display: grid; grid-template-columns: auto 1fr; gap: var(--space-5); align-items: center;
+  padding: var(--space-5) var(--space-5);
+  border-radius: 16px; border: 1px solid var(--border);
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(232, 173, 63, 0.12), transparent 55%),
+    var(--surface);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), var(--card-shadow);
+}
+.hero-icon {
+  width: 72px; height: 72px; border-radius: 18px; display: grid; place-items: center;
+  background: linear-gradient(var(--accent-hi), var(--accent-lo)); color: var(--accent-text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -3px 0 rgba(0, 0, 0, 0.18), 0 6px 18px rgba(201, 143, 34, 0.3);
+}
+.hero-card h2 { font-size: 1.5rem; font-weight: 900; margin-bottom: var(--space-1); }
+.hero-card p { color: var(--text-dim); margin-bottom: var(--space-4); }
+.hero-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+@media (max-width: 600px) {
+  .hero-card { grid-template-columns: 1fr; gap: var(--space-4); padding: var(--space-4); }
+  .hero-icon { width: 56px; height: 56px; border-radius: 14px; }
+}
+
+/* Move controls under a board: four big, equal buttons and the current move. */
+.move-controls {
+  display: grid; grid-template-columns: 1fr 1fr minmax(96px, auto) 1fr 1fr; gap: var(--space-2);
+  align-items: center; margin: var(--space-3) 0 var(--space-4);
+}
+.move-controls .btn { min-height: 46px; padding: 0; }
+.move-controls-now { text-align: center; font-weight: 700; color: var(--text); font-size: 0.95rem; }

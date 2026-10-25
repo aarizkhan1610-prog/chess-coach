@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import type { AnalysedMove, Evaluation, MoveVerdict } from '../types';
 import { VERDICT_META, formatEval, winPctWhite } from '../chess/evaluation';
+import { PieceIcon } from './Pieces';
 
 /* ------------------------------------------------------------------ *
  * Hash routing — a full router is more than this app needs.
@@ -287,6 +288,30 @@ export function BrowseLink({ label, children, onClick, meta }: {
       </span>
       <span className="browse-link-why small dim">{children}</span>
     </button>
+  );
+}
+
+/**
+ * Whose move it is, said the way chess apps say it: a large piece in the
+ * colour to move and the instruction in bold, rather than a small pill.
+ */
+export function TurnHeader({ color, title, meta, children }: {
+  color: 'w' | 'b';
+  title: string;
+  meta?: ReactNode;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="turn-header">
+      {/* The board's own king, not a font glyph — those render at a different
+          size and weight in every typeface. */}
+      <span className="turn-piece" aria-hidden><PieceIcon type="k" color={color} size={36} /></span>
+      <div style={{ minWidth: 0 }}>
+        <div className="turn-title">{title}</div>
+        {meta && <div className="turn-meta">{meta}</div>}
+      </div>
+      {children}
+    </div>
   );
 }
 

@@ -1,4 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo } from 'react';
+import { ChartColumn, Download, GraduationCap, Settings, Target } from 'lucide-react';
 import { useGames, useHydrated, useStorageFault, useStore } from './state/store';
 import { useRoute, Spinner } from './components/ui';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -45,11 +46,14 @@ import { MOTIF_META, type MotifTag } from './types';
  * browse before you have played anything; their routes stay live so every
  * recommendation still opens.
  */
+/* Real icons. The unicode glyphs these replaced (◎ ◔ ◇ ↓ ⚙) rendered at
+ * different sizes and weights in every font, and looked like placeholders. */
+const ICON = { size: 20, strokeWidth: 2.2 } as const;
 const NAV = [
-  { path: '/', icon: '◎', label: 'Coach', match: ['', 'coach'] },
-  { path: '/report', icon: '◔', label: 'Report', match: ['report', 'profile', 'games', 'game'] },
+  { path: '/', icon: <Target {...ICON} />, label: 'Coach', match: ['', 'coach'] },
+  { path: '/report', icon: <ChartColumn {...ICON} />, label: 'Report', match: ['report', 'profile', 'games', 'game'] },
 ];
-const LEARN = { path: '/basics', icon: '◇', label: 'Learn to play' };
+const LEARN = { path: '/basics', icon: <GraduationCap {...ICON} />, label: 'Learn to play' };
 
 /**
  * Said out loud, because the alternative is the app lying.
@@ -112,7 +116,9 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = settings.theme;
-  }, [settings.theme]);
+    // Settings saved before boards had themes carry none; they get the default.
+    document.documentElement.dataset.board = settings.board ?? 'green';
+  }, [settings.theme, settings.board]);
 
   // Cmd/Ctrl+B, as in most editors. Ignored while typing.
   useEffect(() => {
@@ -172,11 +178,11 @@ export default function App() {
 
         <div className="sidebar-foot">
           <a href="#/import" className={`nav-item ${section === 'import' ? 'active' : ''}`}>
-            <span className="nav-icon">{'↓'}</span>
+            <span className="nav-icon"><Download {...ICON} /></span>
             <span>Import games</span>
           </a>
           <a href="#/settings" className={`nav-item ${section === 'settings' ? 'active' : ''}`}>
-            <span className="nav-icon">{'⚙'}</span>
+            <span className="nav-icon"><Settings {...ICON} /></span>
             <span>Settings</span>
           </a>
           <div className="tiny faint" style={{ padding: '6px 10px 0' }}>
