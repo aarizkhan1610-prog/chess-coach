@@ -1,7 +1,13 @@
 /**
- * Regenerates src/coach/benchmark.ts by measuring real games.
+ * Regenerates src/coach/benchmark.ts — the "typical for your rating" figures.
  *
- *   npm run build:benchmark
+ *   npm run build:benchmark     re-score the stored games: seconds, no network, no engine
+ *   npm run benchmark:crawl     fetch and analyse new games and ADD them to the store: about an hour
+ *
+ * Re-scoring is the default on purpose. The crawl is the expensive part and only
+ * ever needs doing to grow or refresh the sample; changing how something is
+ * scored needs only a re-score of the games already stored. Nothing in the
+ * normal workflow — running the app, building, testing, deploying — runs either.
  *
  * The app has no idea how other people play, and a comparison against numbers
  * somebody made up is worse than no comparison at all. So the baseline is
@@ -14,13 +20,14 @@
  * ratings they were at, and fetch from whoever falls in a band that still needs
  * filling.
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { bootNodeEngine, search, type NodeEngine } from '../tests/engine-node';
 import { parsePgn, type ParsedGame } from '../src/chess/pgn';
 import { analyseGame, type Analyser } from '../src/engine/analyze';
 import { findOpening } from '../src/openings';
-import { AXES, BANDS, bandFor, scoreGame, summarise, type AxisScores, type BandStats } from '../src/coach/report';
-import type { AnalysedGame, Color, PositionAnalysis } from '../src/types';
+import { AXES, BANDS, bandFor, scoreGame, type AxisScores, type BandStats } from '../src/coach/report';
+import { STORED_CORPUS, benchmarkFrom, entryKey, mergeCorpora, readCorpus, storedCorpus, writeCorpus, type CorpusEntry } from './corpus';
+import type { Color, PositionAnalysis } from '../src/types';
 
 const DEPTH = 12;
 const GAMES_PER_BAND = Number(process.env.GAMES_PER_BAND ?? 24);
@@ -31,28 +38,11 @@ const SEEDS = (process.env.SEEDS ?? 'german11').split(',');
  * fresh candidates, that is effectively never.
  */
 const MAX_FETCHES = Number(process.env.MAX_FETCHES ?? 70);
-/*
- * The analysed games themselves, kept so the scoring can be changed without
- * paying for the crawl again.
- *
- *   CORPUS_OUT=corpus.json npm run build:benchmark   # crawl, and keep the games
- *   CORPUS_IN=a.json,b.json npm run build:benchmark  # re-score, deduplicated
- *
- * Re-scoring offline is the only way to tell a scoring change from a sampling
- * difference: the same 300 games through two formulas is a comparison, two
- * different crawls through two formulas is a coincidence.
- */
-const CORPUS_OUT = process.env.CORPUS_OUT ?? '';
+const CRAWL = process.argv[2] === 'crawl';
+/** Re-score these instead of the stored corpus — comma separated, deduplicated. */
 const CORPUS_IN = process.env.CORPUS_IN ?? '';
-
-interface CorpusEntry {
-  band: string;
-  color: Color;
-  game: AnalysedGame;
-}
-/** Lichess asks for one request at a time and a pause between them. */
-const POLITE_MS = 1500;
-const UA = 'chess-coach benchmark builder (github.com/aarizkhan1610-prog/chess-coach)';
+/** Where a crawl writes. The stored corpus unless told otherwise. */
+const CORPUS_OUT = process.env.CORPUS_OUT || STORED_CORPUS;
 
 function asAnalyser(e: NodeEngine): Analyser {
   return {
@@ -123,13 +113,8 @@ function playersIn(games: ParsedGame[]): Candidate[] {
 
 /** Everything after the crawl: score the corpus, print it, write the table. */
 function emit(corpus: CorpusEntry[], fetches: number | null) {
-  const scored = new Map<string, AxisScores[]>(BANDS.map((b) => [b.label, []]));
-  for (const entry of corpus) {
-    scored.get(entry.band)?.push(scoreGame(entry.game, entry.color));
-  }
-
   console.log('');
-  const stats: BandStats[] = BANDS.map((b) => summarise(b, scored.get(b.label)!));
+  const stats: BandStats[] = benchmarkFrom(corpus);
   for (const s of stats) {
     console.log(`${s.label.padEnd(12)} n=${String(s.games).padStart(3)}  `
       + AXES.map((a) => `${a.label} ${String(s.median[a.id]).padStart(3)}`).join('  '));
@@ -161,32 +146,34 @@ export const BENCHMARK_BUILT = '${new Date().toISOString().slice(0, 10)}';
 }
 
 async function main() {
-  /* Re-scoring a kept corpus needs neither the network nor the engine. */
-  if (CORPUS_IN) {
-    /*
-     * Several files may be given, comma separated, and are deduplicated by
-     * game: a crawl seeded differently still overlaps, and a game counted
-     * twice would weight one performance double in its band. The id is a hash
-     * of the players, the date and the moves, so it survives separate crawls.
-     */
-    const seenGames = new Set<string>();
-    const corpus: CorpusEntry[] = [];
-    let duplicates = 0;
-    for (const path of CORPUS_IN.split(',').map((x) => x.trim()).filter(Boolean)) {
-      const part = JSON.parse(readFileSync(path, 'utf8')) as CorpusEntry[];
-      for (const entry of part) {
-        const key = `${entry.game.id}:${entry.color}`;
-        if (seenGames.has(key)) { duplicates++; continue; }
-        seenGames.add(key);
-        corpus.push(entry);
-      }
-      console.log(`  ${path}: ${part.length} games`);
+  /* Re-scoring needs neither the network nor the engine, and is the default. */
+  if (!CRAWL) {
+    const paths = CORPUS_IN ? CORPUS_IN.split(',').map((x) => x.trim()).filter(Boolean) : [STORED_CORPUS];
+    let parts: CorpusEntry[][];
+    try {
+      parts = paths.map((path) => readCorpus(path));
+    } catch {
+      console.error(`No stored games at ${paths.join(', ')}.\n`
+        + 'Run `npm run benchmark:crawl` once to fetch and analyse them (about an hour); after that,\n'
+        + 're-scoring takes seconds and never needs the crawl again.');
+      process.exit(1);
     }
+    paths.forEach((path, i) => console.log(`  ${path}: ${parts[i].length} games`));
+    const { corpus, duplicates } = mergeCorpora(...parts);
     console.log(`Re-scoring ${corpus.length} games`
       + (duplicates ? ` (${duplicates} duplicate${duplicates === 1 ? '' : 's'} dropped)` : ''));
     emit(corpus, null);
     return;
   }
+
+  /*
+   * A crawl adds to what is stored rather than replacing it, and does not spend
+   * engine time on a game the store already has. Crawling again grows the
+   * sample; it never throws an hour of earlier work away.
+   */
+  const stored = storedCorpus() ?? [];
+  const storedKeys = new Set(stored.map(entryKey));
+  if (stored.length) console.log(`Adding to the ${stored.length} games already stored.`);
 
   const engine = await bootNodeEngine();
   const analyser = asAnalyser(engine);
@@ -255,10 +242,13 @@ async function main() {
         if (!rating) continue;
         const band = bandFor(rating);
         if (needed(band.label) <= 0) continue;
+        if (storedKeys.has(`${parsed.id}:${color}`)) continue;
 
         try {
           const game = await analyseGame(analyser, parsed, color, { depth: DEPTH, multipv: 2, book: findOpening });
           corpus.push({ band: band.label, color, game });
+          // The same game turns up in both players' histories; analyse it once.
+          storedKeys.add(`${parsed.id}:${color}`);
           scored.get(band.label)!.push(scoreGame(game, color));
           const filled = BANDS.map((b) => `${b.label.padEnd(10)} ${scored.get(b.label)!.length}/${GAMES_PER_BAND}`);
           process.stdout.write(`\r  ${filled.join('  ')}   `);
@@ -269,12 +259,11 @@ async function main() {
     }
   }
 
-  if (CORPUS_OUT) {
-    writeFileSync(CORPUS_OUT, JSON.stringify(corpus));
-    console.log(`\nKept ${corpus.length} analysed games in ${CORPUS_OUT}`);
-  }
+  const { corpus: merged } = mergeCorpora(stored, corpus);
+  writeCorpus(CORPUS_OUT, merged);
+  console.log(`\nStored ${merged.length} analysed games (${corpus.length} new) in ${CORPUS_OUT}`);
 
-  emit(corpus, fetches);
+  emit(merged, fetches);
   engine.quit();
 }
 

@@ -125,22 +125,32 @@ variations, known traps, and a "play the line from memory" test.
 
 ## The benchmark
 
-The comparison is measured, not invented. `npm run build:benchmark` samples real
-rated games from the public Lichess API across five rating bands, runs them
-through the same analysis and the same scoring function that runs on your own
-games, and writes the medians and quartiles to `src/coach/benchmark.ts`. The
-shipped table is built from 534 games, roughly 107 per band.
+The comparison is measured, not invented. The figures come from real rated
+games sampled from the public Lichess API across five rating bands, run through
+the same analysis and the same scoring function that runs on your own games.
+
+Those analysed games — the corpus — are stored in the repository at
+`data/benchmark-corpus.json.gz`: 512 games, about 100 per band from between 28
+and 59 different players each, compressed to 3.5MB. The app ships only the
+summary in `src/coach/benchmark.ts`; the corpus is the evidence it was computed
+from.
 
 ```bash
-CORPUS_OUT=corpus.json npm run build:benchmark    # crawl, and keep the games
-CORPUS_IN=a.json,b.json npm run build:benchmark   # re-score, deduplicated by game
+npm run build:benchmark   # re-score the stored games — seconds, no network, no engine
+npm run benchmark:crawl   # fetch and analyse new games and add them — about an hour
 ```
 
-Keeping the corpus is what makes the scoring changeable. Re-scoring one set of
-games is the only way to tell a scoring change from a sampling difference; two
-crawls through two formulas is a coincidence. Several files merge, deduplicated
-by a hash of the players, date and moves, so a second crawl grows the sample
-instead of doubling it.
+Re-scoring is the default, because it is almost always what is wanted: changing
+how something is scored needs only the stored games, and it is the only way to
+tell a better formula from a different sample — the same games through two
+formulas is a comparison, two crawls through two formulas is a coincidence.
+Crawling is only for growing or refreshing the sample, and it adds to the store
+rather than replacing it, skipping any game already there. Nothing in the normal
+workflow — running the app, building, testing, deploying — runs either.
+
+`tests/benchmark.test.ts` runs in the deploy and fails if the stored games are
+missing, or if the shipped figures no longer match what they produce. The first
+copy of the corpus was kept in a temporary directory and lost; it is in git now.
 
 Two rules keep the chart honest: an axis your game did not contain enough of is
 left off rather than drawn as zero, and a rating band with too few samples is
@@ -269,7 +279,7 @@ npm run test:fast    # the pure-logic suites only
 npm run typecheck
 ```
 
-Thirteen suites, 607 assertions, and they gate the deploy: the workflow in
+Sixteen suites, 690 assertions, and they gate the deploy: the workflow in
 `.github/workflows/deploy.yml` runs the typecheck and the full suite before
 publishing, so a bad commit stops at CI rather than on the live site.
 

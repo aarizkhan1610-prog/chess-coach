@@ -2,7 +2,7 @@
  *
  * Median and quartile scores for real rated games, by rating band, measured
  * with the same scoring code that runs on the user's own games. Built on
- * 2026-10-09 at depth 12.
+ * 2026-10-25 at depth 12.
  */
 import type { BandStats } from './report';
 
@@ -11,173 +11,173 @@ export const BENCHMARK: BandStats[] = [
     "from": 0,
     "to": 1099,
     "label": "Under 1100",
-    "games": 107,
+    "games": 102,
     "median": {
-      "opening": 77,
-      "middlegame": 79,
-      "tactics": 51,
-      "errors": 56,
-      "conversion": 35
+      "opening": 79,
+      "middlegame": 67,
+      "tactics": 31,
+      "errors": 34,
+      "conversion": 28
     },
     "p25": {
-      "opening": 69,
-      "middlegame": 68,
-      "tactics": 31,
-      "errors": 33,
-      "conversion": 17
+      "opening": 66,
+      "middlegame": 55,
+      "tactics": 2,
+      "errors": 0,
+      "conversion": 9
     },
     "p75": {
-      "opening": 85,
-      "middlegame": 89,
-      "tactics": 68,
-      "errors": 77,
-      "conversion": 88
+      "opening": 87,
+      "middlegame": 83,
+      "tactics": 60,
+      "errors": 66,
+      "conversion": 75
     },
     "n": {
-      "opening": 107,
-      "middlegame": 97,
-      "tactics": 107,
-      "errors": 107,
-      "conversion": 45
+      "opening": 102,
+      "middlegame": 93,
+      "tactics": 102,
+      "errors": 102,
+      "conversion": 77
     }
   },
   {
     "from": 1100,
     "to": 1399,
     "label": "1100–1399",
-    "games": 110,
+    "games": 93,
     "median": {
-      "opening": 86,
-      "middlegame": 75,
-      "tactics": 58,
-      "errors": 60,
-      "conversion": 54
+      "opening": 82,
+      "middlegame": 77,
+      "tactics": 62,
+      "errors": 64,
+      "conversion": 50
     },
     "p25": {
-      "opening": 78,
-      "middlegame": 64,
-      "tactics": 37,
-      "errors": 31,
-      "conversion": 23
+      "opening": 72,
+      "middlegame": 67,
+      "tactics": 42,
+      "errors": 42,
+      "conversion": 22
     },
     "p75": {
-      "opening": 92,
-      "middlegame": 83,
-      "tactics": 75,
-      "errors": 76,
-      "conversion": 92
+      "opening": 91,
+      "middlegame": 85,
+      "tactics": 74,
+      "errors": 79,
+      "conversion": 82
     },
     "n": {
-      "opening": 110,
-      "middlegame": 107,
-      "tactics": 110,
-      "errors": 110,
-      "conversion": 47
+      "opening": 93,
+      "middlegame": 91,
+      "tactics": 93,
+      "errors": 93,
+      "conversion": 56
     }
   },
   {
     "from": 1400,
     "to": 1699,
     "label": "1400–1699",
-    "games": 113,
+    "games": 105,
     "median": {
-      "opening": 88,
-      "middlegame": 77,
+      "opening": 87,
+      "middlegame": 76,
       "tactics": 61,
-      "errors": 60,
-      "conversion": 63
+      "errors": 63,
+      "conversion": 64
     },
     "p25": {
-      "opening": 79,
+      "opening": 80,
       "middlegame": 66,
-      "tactics": 43,
-      "errors": 38,
-      "conversion": 28
+      "tactics": 44,
+      "errors": 40,
+      "conversion": 23
     },
     "p75": {
-      "opening": 93,
-      "middlegame": 86,
-      "tactics": 78,
-      "errors": 79,
+      "opening": 91,
+      "middlegame": 83,
+      "tactics": 77,
+      "errors": 81,
       "conversion": 89
     },
     "n": {
-      "opening": 113,
-      "middlegame": 106,
-      "tactics": 113,
-      "errors": 113,
-      "conversion": 68
+      "opening": 105,
+      "middlegame": 105,
+      "tactics": 105,
+      "errors": 105,
+      "conversion": 71
     }
   },
   {
     "from": 1700,
     "to": 1999,
     "label": "1700–1999",
-    "games": 116,
+    "games": 102,
     "median": {
       "opening": 91,
-      "middlegame": 82,
-      "tactics": 77,
-      "errors": 77,
-      "conversion": 78
+      "middlegame": 81,
+      "tactics": 70,
+      "errors": 69,
+      "conversion": 68
     },
     "p25": {
-      "opening": 87,
-      "middlegame": 72,
-      "tactics": 57,
-      "errors": 53,
-      "conversion": 54
+      "opening": 86,
+      "middlegame": 69,
+      "tactics": 47,
+      "errors": 49,
+      "conversion": 26
     },
     "p75": {
-      "opening": 93,
-      "middlegame": 90,
-      "tactics": 87,
-      "errors": 92,
-      "conversion": 92
+      "opening": 94,
+      "middlegame": 89,
+      "tactics": 85,
+      "errors": 91,
+      "conversion": 94
     },
     "n": {
-      "opening": 116,
-      "middlegame": 113,
-      "tactics": 116,
-      "errors": 116,
-      "conversion": 96
+      "opening": 102,
+      "middlegame": 101,
+      "tactics": 102,
+      "errors": 102,
+      "conversion": 79
     }
   },
   {
     "from": 2000,
     "to": 9999,
     "label": "2000+",
-    "games": 88,
+    "games": 110,
     "median": {
       "opening": 96,
-      "middlegame": 90,
-      "tactics": 89,
-      "errors": 91,
-      "conversion": 87
+      "middlegame": 88,
+      "tactics": 87,
+      "errors": 89,
+      "conversion": 85
     },
     "p25": {
-      "opening": 95,
+      "opening": 94,
       "middlegame": 84,
-      "tactics": 81,
-      "errors": 86,
-      "conversion": 68
+      "tactics": 79,
+      "errors": 81,
+      "conversion": 63
     },
     "p75": {
       "opening": 97,
       "middlegame": 93,
-      "tactics": 95,
-      "errors": 96,
-      "conversion": 96
+      "tactics": 94,
+      "errors": 100,
+      "conversion": 95
     },
     "n": {
-      "opening": 88,
-      "middlegame": 86,
-      "tactics": 88,
-      "errors": 88,
-      "conversion": 44
+      "opening": 110,
+      "middlegame": 108,
+      "tactics": 110,
+      "errors": 110,
+      "conversion": 57
     }
   }
 ];
 
 /** The day the numbers above were measured, so the interface can say so. */
-export const BENCHMARK_BUILT = '2026-10-09';
+export const BENCHMARK_BUILT = '2026-10-25';

@@ -3,3 +3,5 @@ dist
 .DS_Store
 *.local
 .claude
+# The benchmark corpus is committed compressed (data/*.json.gz); never the raw file.
+data/*.json
